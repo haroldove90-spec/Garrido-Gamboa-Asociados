@@ -659,10 +659,10 @@ const Navbar = () => {
     <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-navy/95 backdrop-blur-md py-3 shadow-xl' : 'bg-transparent py-6'}`}>
       <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 gold-gradient rounded-sm flex items-center justify-center">
-            <Scale className="text-navy w-6 h-6" />
+          <div className="w-8 h-8 md:w-10 md:h-10 gold-gradient rounded-sm flex items-center justify-center">
+            <Scale className="text-navy w-4 h-4 md:w-6 md:h-6" />
           </div>
-          <span className={`font-serif text-xl font-bold tracking-tighter ${isScrolled ? 'text-white' : 'text-white'}`}>
+          <span className={`font-serif text-sm md:text-xl font-bold tracking-tighter text-white`}>
             CARRILLO GAMBOA <span className="text-gold">& ASOCIADOS</span>
           </span>
         </div>
@@ -804,12 +804,12 @@ const Hero = () => {
       </div>
 
       {/* Slide Indicators */}
-      <div className="absolute bottom-10 right-10 z-20 flex gap-4">
+      <div className="absolute bottom-6 right-6 md:bottom-10 md:right-10 z-20 flex gap-2 md:gap-4">
         {slides.map((_, i) => (
           <button 
             key={i}
             onClick={() => setCurrentSlide(i)}
-            className={`h-1 transition-all duration-300 ${currentSlide === i ? 'w-12 bg-gold' : 'w-6 bg-white/30'}`}
+            className={`h-1 transition-all duration-300 ${currentSlide === i ? 'w-8 md:w-12 bg-gold' : 'w-4 md:w-6 bg-white/30'}`}
           />
         ))}
       </div>
@@ -942,7 +942,7 @@ const BookingSystem = () => {
           </div>
 
           {/* Form Area */}
-          <div className="p-12 md:w-2/3">
+          <div className="p-6 md:p-12 md:w-2/3">
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
@@ -1142,14 +1142,14 @@ const About = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
-            className="relative"
+            className="relative px-4 md:px-0"
           >
-            <div className="absolute -top-4 -left-4 w-24 h-24 border-t-2 border-l-2 border-gold" />
-            <div className="absolute -bottom-4 -right-4 w-24 h-24 border-b-2 border-r-2 border-gold" />
+            <div className="absolute -top-2 -left-2 md:-top-4 md:-left-4 w-16 h-16 md:w-24 md:h-24 border-t-2 border-l-2 border-gold" />
+            <div className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 border-b-2 border-r-2 border-gold" />
             <img 
               src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=2071" 
               alt="Professional Team" 
-              className="w-full h-[500px] object-cover shadow-2xl grayscale hover:grayscale-0 transition-all duration-700"
+              className="w-full h-[300px] md:h-[500px] object-cover shadow-2xl grayscale hover:grayscale-0 transition-all duration-700"
               referrerPolicy="no-referrer"
             />
           </motion.div>
@@ -1287,7 +1287,7 @@ const AIScanner = () => {
 
   return (
     <section id="ai-scanner" className="py-24 navy-gradient text-white overflow-hidden relative">
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gold/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96 bg-gold/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       
       <div className="max-w-4xl mx-auto px-6 relative z-10">
         <div className="text-center mb-12">
@@ -1431,7 +1431,7 @@ const Contact = () => {
 
           <div className="bg-slate-50 p-10 rounded-xl border border-slate-100">
             <form className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Nombre</label>
                   <input type="text" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
@@ -1479,7 +1479,7 @@ const Footer = () => {
               <div className="w-8 h-8 gold-gradient rounded-sm flex items-center justify-center">
                 <Scale className="text-navy w-5 h-5" />
               </div>
-              <span className="font-serif text-xl font-bold tracking-tighter">
+              <span className="font-serif text-sm md:text-xl font-bold tracking-tighter">
                 CARRILLO GAMBOA <span className="text-gold">& ASOCIADOS</span>
               </span>
             </div>
@@ -1541,16 +1541,40 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden bg-slate-50">
       <Navbar />
-      {/* Hidden Admin Toggle for Demo */}
-      <button 
-        onClick={() => setRole('admin')}
-        className="fixed top-20 right-6 z-[60] w-10 h-10 bg-navy/10 hover:bg-navy/20 rounded-full flex items-center justify-center text-navy/20 hover:text-navy/50 transition-all"
-        title="Acceso Admin (Demo)"
-      >
-        <Settings className="w-5 h-5" />
-      </button>
+      
+      {/* Prominent Role Switcher for Demo */}
+      <div className="fixed top-24 right-0 z-[60] flex flex-col items-end pointer-events-none">
+        <motion.div 
+          initial={{ x: 100 }}
+          animate={{ x: 0 }}
+          className="bg-navy/90 backdrop-blur-md border border-gold/30 rounded-l-xl p-3 shadow-2xl pointer-events-auto flex items-center gap-3 group hover:pr-6 transition-all"
+        >
+          <div className="flex flex-col items-end">
+            <p className="text-[10px] text-gold uppercase tracking-widest font-bold">Modo de Vista</p>
+            <p className="text-xs text-white font-bold">{role === 'client' ? 'Cliente / Público' : 'Administrador'}</p>
+          </div>
+          <button 
+            onClick={() => setRole(role === 'client' ? 'admin' : 'client')}
+            className="w-10 h-10 gold-gradient rounded-lg flex items-center justify-center text-navy shadow-lg hover:scale-110 active:scale-95 transition-all"
+            title={role === 'client' ? 'Cambiar a Vista Admin' : 'Cambiar a Vista Cliente'}
+          >
+            {role === 'client' ? <Settings className="w-5 h-5" /> : <Users className="w-5 h-5" />}
+          </button>
+        </motion.div>
+        
+        {role === 'client' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-2 mr-4 bg-amber-500 text-white text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter shadow-lg"
+          >
+            Demo: Haz clic para ver el Panel Admin
+          </motion.div>
+        )}
+      </div>
+
       <Hero />
       <About />
       <Services />
