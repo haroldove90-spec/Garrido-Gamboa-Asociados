@@ -18,9 +18,11 @@ import {
   Phone,
   Mail,
   Linkedin,
-  Instagram
+  Instagram,
+  Calendar,
+  User
 } from 'lucide-react';
-import { analyzeTaxRisk, RiskAnalysis } from './services/geminiService';
+import { analyzeTaxRisk, RiskAnalysis, analyzeBookingRequest, BookingAnalysis } from './services/geminiService';
 
 // --- Components ---
 
@@ -38,6 +40,7 @@ const Navbar = () => {
     { name: 'Inicio', href: '#home' },
     { name: 'Nosotros', href: '#about' },
     { name: 'Servicios', href: '#services' },
+    { name: 'Citas', href: '#booking' },
     { name: 'Escáner IA', href: '#ai-scanner' },
     { name: 'Contacto', href: '#contact' },
   ];
@@ -179,12 +182,12 @@ const Hero = () => {
               {slides[currentSlide].desc}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="gold-gradient text-navy px-8 py-4 rounded-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 group">
-                Nuestros Servicios <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-              <button className="border border-white/30 text-white hover:bg-white/10 px-8 py-4 rounded-sm font-bold uppercase tracking-widest transition-all">
-                Conócenos
-              </button>
+              <a href="#booking" className="gold-gradient text-navy px-8 py-4 rounded-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 group">
+                Agendar Cita <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </a>
+              <a href="#services" className="border border-white/30 text-white hover:bg-white/10 px-8 py-4 rounded-sm font-bold uppercase tracking-widest flex items-center justify-center transition-all">
+                Servicios
+              </a>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -205,6 +208,258 @@ const Hero = () => {
         <span className="text-gold font-bold">0{currentSlide + 1}</span>
         <div className="w-12 h-px bg-white/20" />
         <span>0{slides.length}</span>
+      </div>
+    </section>
+  );
+};
+
+const BookingSystem = () => {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    service: 'Asesoría Fiscal',
+    description: '',
+    date: '',
+    time: '',
+    name: '',
+    email: '',
+    phone: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<BookingAnalysis | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
+
+  const services = ['Asesoría Fiscal', 'Contabilidad', 'Defensa Legal', 'Administración', 'Auditoría'];
+  const timeSlots = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '04:00 PM', '05:00 PM', '06:00 PM'];
+
+  const handleNextStep = async () => {
+    if (step === 2) {
+      setLoading(true);
+      const analysis = await analyzeBookingRequest(formData.description, formData.service);
+      setAiAnalysis(analysis);
+      setLoading(false);
+    }
+    setStep(step + 1);
+  };
+
+  const handleConfirm = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setIsConfirmed(true);
+    }, 1500);
+  };
+
+  if (isConfirmed) {
+    return (
+      <section id="booking" className="py-24 bg-white">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-emerald-50 border border-emerald-100 p-12 rounded-2xl"
+          >
+            <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-200">
+              <CheckCircle className="text-white w-10 h-10" />
+            </div>
+            <h2 className="text-3xl font-serif text-navy mb-4">¡Cita Agendada con Éxito!</h2>
+            <p className="text-slate-600 mb-8">
+              Hemos recibido tu solicitud. Un especialista de **Carrillo Gamboa & Asociados** se pondrá en contacto contigo en breve para confirmar los detalles finales.
+            </p>
+            <div className="bg-white p-6 rounded-xl border border-emerald-100 text-left mb-8">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-400 uppercase text-[10px] font-bold tracking-widest">Fecha y Hora</p>
+                  <p className="text-navy font-bold">{formData.date} a las {formData.time}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 uppercase text-[10px] font-bold tracking-widest">Servicio</p>
+                  <p className="text-navy font-bold">{formData.service}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 uppercase text-[10px] font-bold tracking-widest">Especialista Sugerido</p>
+                  <p className="text-gold font-bold">{aiAnalysis?.suggestedSpecialist}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 uppercase text-[10px] font-bold tracking-widest">Prioridad</p>
+                  <p className={`font-bold ${aiAnalysis?.priority === 'Urgente' ? 'text-rose-500' : 'text-navy'}`}>{aiAnalysis?.priority}</p>
+                </div>
+              </div>
+            </div>
+            <button 
+              onClick={() => { setIsConfirmed(false); setStep(1); setFormData({ service: 'Asesoría Fiscal', description: '', date: '', time: '', name: '', email: '', phone: '' }); }}
+              className="text-navy font-bold text-xs uppercase tracking-widest hover:text-gold transition-colors"
+            >
+              Agendar otra cita
+            </button>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section id="booking" className="py-24 bg-slate-50">
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <span className="text-gold font-bold tracking-widest uppercase text-xs mb-4 block">Agenda tu Cita</span>
+          <h2 className="text-4xl font-serif text-navy">Sistema de <span className="text-gold">Agenda Inteligente</span></h2>
+          <p className="text-slate-500 mt-4">Nuestra IA analizará tu caso para asignarte al especialista adecuado.</p>
+        </div>
+
+        <div className="bg-white shadow-2xl rounded-2xl overflow-hidden border border-slate-100 flex flex-col md:flex-row">
+          {/* Sidebar Progress */}
+          <div className="bg-navy p-10 md:w-1/3 text-white">
+            <div className="space-y-8">
+              {[
+                { s: 1, t: 'Servicio', i: <Briefcase className="w-4 h-4" /> },
+                { s: 2, t: 'Detalles del Caso', i: <FileText className="w-4 h-4" /> },
+                { s: 3, t: 'Fecha y Hora', i: <Calendar className="w-4 h-4" /> },
+                { s: 4, t: 'Información', i: <User className="w-4 h-4" /> }
+              ].map((item) => (
+                <div key={item.s} className={`flex items-center gap-4 transition-opacity ${step >= item.s ? 'opacity-100' : 'opacity-30'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${step === item.s ? 'bg-gold border-gold text-navy' : 'border-white/20'}`}>
+                    {item.i}
+                  </div>
+                  <span className="text-sm font-bold uppercase tracking-widest">{item.t}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-20 p-6 bg-white/5 rounded-xl border border-white/10">
+              <p className="text-xs text-white/40 italic leading-relaxed">
+                "Nuestra agenda inteligente optimiza los tiempos de respuesta basándose en la complejidad de tu requerimiento."
+              </p>
+            </div>
+          </div>
+
+          {/* Form Area */}
+          <div className="p-12 md:w-2/3">
+            <AnimatePresence mode="wait">
+              {step === 1 && (
+                <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                  <h3 className="text-2xl font-serif text-navy mb-8">¿Qué servicio requieres?</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {services.map((s) => (
+                      <button 
+                        key={s}
+                        onClick={() => setFormData({ ...formData, service: s })}
+                        className={`p-4 text-left rounded-xl border transition-all flex justify-between items-center ${formData.service === s ? 'border-gold bg-gold/5 text-navy font-bold' : 'border-slate-200 text-slate-500 hover:border-gold/50'}`}
+                      >
+                        {s}
+                        {formData.service === s && <CheckCircle className="w-5 h-5 text-gold" />}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 2 && (
+                <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                  <h3 className="text-2xl font-serif text-navy mb-4">Cuéntanos sobre tu caso</h3>
+                  <p className="text-slate-500 text-sm mb-6">Nuestra IA procesará esta información para priorizar tu cita.</p>
+                  <textarea 
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Describe brevemente el motivo de tu consulta..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-navy focus:outline-none focus:border-gold min-h-[200px]"
+                  />
+                </motion.div>
+              )}
+
+              {step === 3 && (
+                <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                  <h3 className="text-2xl font-serif text-navy mb-8">Selecciona Fecha y Hora</h3>
+                  <div className="space-y-6">
+                    <input 
+                      type="date" 
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-navy focus:outline-none focus:border-gold"
+                    />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {timeSlots.map((t) => (
+                        <button 
+                          key={t}
+                          onClick={() => setFormData({ ...formData, time: t })}
+                          className={`p-3 text-xs font-bold rounded-lg border transition-all ${formData.time === t ? 'bg-navy text-white border-navy' : 'bg-white text-slate-500 border-slate-200 hover:border-gold'}`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 4 && (
+                <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                  <h3 className="text-2xl font-serif text-navy mb-4">Tus Datos de Contacto</h3>
+                  <div className="space-y-4">
+                    <input 
+                      type="text" 
+                      placeholder="Nombre Completo"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-navy focus:outline-none focus:border-gold"
+                    />
+                    <input 
+                      type="email" 
+                      placeholder="Correo Electrónico"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-navy focus:outline-none focus:border-gold"
+                    />
+                    <input 
+                      type="tel" 
+                      placeholder="Teléfono"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-navy focus:outline-none focus:border-gold"
+                    />
+                  </div>
+
+                  {aiAnalysis && (
+                    <div className="mt-8 p-4 bg-gold/10 border border-gold/20 rounded-xl">
+                      <div className="flex items-center gap-2 text-gold font-bold text-xs uppercase tracking-widest mb-2">
+                        <ShieldCheck className="w-4 h-4" /> Análisis de Prioridad IA
+                      </div>
+                      <p className="text-navy font-bold text-sm">Especialista Sugerido: {aiAnalysis.suggestedSpecialist}</p>
+                      <p className="text-slate-600 text-xs mt-1">Prioridad: {aiAnalysis.priority} | Duración: {aiAnalysis.estimatedDuration}</p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="mt-12 flex justify-between items-center">
+              {step > 1 && (
+                <button 
+                  onClick={() => setStep(step - 1)}
+                  className="text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-navy transition-colors"
+                >
+                  Atrás
+                </button>
+              )}
+              <div className="flex-1" />
+              {step < 4 ? (
+                <button 
+                  onClick={handleNextStep}
+                  disabled={loading || (step === 1 && !formData.service) || (step === 2 && !formData.description) || (step === 3 && (!formData.date || !formData.time))}
+                  className="gold-gradient text-navy px-10 py-4 rounded-lg font-bold uppercase tracking-widest hover:scale-105 transition-all disabled:opacity-50"
+                >
+                  {loading ? 'Analizando...' : 'Siguiente'}
+                </button>
+              ) : (
+                <button 
+                  onClick={handleConfirm}
+                  disabled={loading || !formData.name || !formData.email || !formData.phone}
+                  className="navy-gradient text-white px-10 py-4 rounded-lg font-bold uppercase tracking-widest hover:brightness-125 transition-all disabled:opacity-50"
+                >
+                  {loading ? 'Confirmando...' : 'Confirmar Cita'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -637,6 +892,7 @@ const Footer = () => {
               <li><a href="#home" className="hover:text-gold transition-colors">Inicio</a></li>
               <li><a href="#about" className="hover:text-gold transition-colors">Nosotros</a></li>
               <li><a href="#services" className="hover:text-gold transition-colors">Servicios</a></li>
+              <li><a href="#booking" className="hover:text-gold transition-colors">Agendar Cita</a></li>
               <li><a href="#ai-scanner" className="hover:text-gold transition-colors">Escáner IA</a></li>
             </ul>
           </div>
@@ -669,6 +925,7 @@ export default function App() {
       <Hero />
       <About />
       <Services />
+      <BookingSystem />
       <Testimonials />
       <AIScanner />
       <Contact />
