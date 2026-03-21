@@ -222,6 +222,7 @@ const PWAInstallPrompt = () => {
 
 const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const stats = [
     { label: 'Ingresos Mensuales', value: '$425,000', change: '+12.5%', icon: <DollarSign className="w-5 h-5" /> },
@@ -271,17 +272,38 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 flex">
+    <div className="min-h-screen bg-slate-100 flex relative overflow-hidden">
+      {/* Sidebar Overlay for Mobile */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-navy/60 backdrop-blur-sm z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <div className="w-64 bg-navy text-white flex flex-col">
-        <div className="p-6 flex items-center gap-2 border-b border-white/10">
-          <div className="w-8 h-8 gold-gradient rounded-sm flex items-center justify-center">
-            <Scale className="text-navy w-5 h-5" />
+      <div className={`fixed inset-y-0 left-0 w-64 bg-navy text-white flex flex-col z-50 transition-transform duration-300 transform lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 flex items-center justify-between border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 gold-gradient rounded-sm flex items-center justify-center">
+              <Scale className="text-navy w-5 h-5" />
+            </div>
+            <span className="font-serif text-sm font-bold tracking-tighter uppercase">Admin Panel</span>
           </div>
-          <span className="font-serif text-sm font-bold tracking-tighter">ADMIN PANEL</span>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden text-white/60 hover:text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {[
             { id: 'overview', label: 'Métricas', icon: <LayoutDashboard className="w-4 h-4" /> },
             { id: 'clients', label: 'Clientes', icon: <Users className="w-4 h-4" /> },
@@ -292,7 +314,10 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
           ].map((item) => (
             <button 
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => {
+                setActiveTab(item.id);
+                setIsSidebarOpen(false);
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === item.id ? 'bg-gold text-navy' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
             >
               {item.icon}
@@ -311,21 +336,29 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-8">
-          <h2 className="text-xl font-serif text-navy capitalize">{activeTab}</h2>
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
+        <header className="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-4 md:px-8">
           <div className="flex items-center gap-4">
-            <div className="text-right">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 text-navy hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h2 className="text-lg md:text-xl font-serif text-navy capitalize">{activeTab}</h2>
+          </div>
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-navy">Admin User</p>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest">Super Admin</p>
             </div>
-            <div className="w-10 h-10 bg-slate-200 rounded-full overflow-hidden">
-              <img src="https://i.pravatar.cc/100?u=admin" alt="Admin" />
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-slate-200 rounded-full overflow-hidden border border-slate-200">
+              <img src="https://i.pravatar.cc/100?u=admin" alt="Admin" className="w-full h-full object-cover" />
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
           {activeTab === 'overview' && (
             <div className="space-y-8">
               {/* Stats Grid */}
