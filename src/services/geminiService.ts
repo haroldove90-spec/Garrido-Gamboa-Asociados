@@ -1,6 +1,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+let aiInstance: GoogleGenAI | null = null;
+
+function getAI(): GoogleGenAI {
+  if (!aiInstance) {
+    // Usamos una forma segura de acceder a process.env para evitar errores si process no está definido
+    const apiKey = typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined;
+    if (!apiKey) {
+      console.warn("GEMINI_API_KEY no está configurada. Las funciones de IA no estarán disponibles.");
+    }
+    aiInstance = new GoogleGenAI({ apiKey: apiKey || "dummy-key" });
+  }
+  return aiInstance;
+}
 
 export interface RiskAnalysis {
   level: "Bajo" | "Medio" | "Alto";
@@ -34,6 +46,7 @@ export async function analyzeTaxRisk(situation: string): Promise<RiskAnalysis> {
   }`;
 
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model,
       contents: prompt,
@@ -85,6 +98,7 @@ export async function analyzeBookingRequest(description: string, serviceType: st
   }`;
 
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model,
       contents: prompt,
@@ -111,6 +125,7 @@ export async function getChatbotResponse(message: string, role: "admin" | "clien
     : "Eres el asistente virtual de Carrillo Gamboa & Asociados. Ayudas a clientes potenciales con dudas sobre servicios fiscales, legales y contables. Tu objetivo es ser amable, profesional y guiarlos a agendar una cita si su duda es compleja.";
 
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model,
       contents: message,

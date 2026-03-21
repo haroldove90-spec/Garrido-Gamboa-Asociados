@@ -63,14 +63,14 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100]">
+    <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[100] flex flex-col items-end">
       <AnimatePresence>
         {isOpen && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="bg-white w-80 md:w-96 h-[500px] rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden mb-4"
+            className="bg-white w-[calc(100vw-2rem)] md:w-96 h-[500px] max-h-[80vh] rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden mb-4"
           >
             <div className="navy-gradient p-4 text-white flex justify-between items-center">
               <div className="flex items-center gap-2">
@@ -1563,17 +1563,64 @@ const Footer = () => {
 
 export default function App() {
   const [role, setRole] = useState<'admin' | 'client'>('client');
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    console.log('App mounted successfully in role:', role);
+    console.log('App mounting... role:', role);
+    // Simular inicialización segura
+    const timer = setTimeout(() => {
+      console.log('App ready');
+      setIsAuthReady(true);
+    }, 800);
+    return () => clearTimeout(timer);
   }, []);
 
-  if (role === 'admin') {
+  if (!isAuthReady) {
     return (
-      <>
-        <AdminDashboard onLogout={() => setRole('client')} />
-        <PWAInstallPrompt />
-        {/* Floating Role Switcher for Admin */}
+      <div className="min-h-screen bg-navy flex flex-col items-center justify-center">
+        <div className="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-gold font-serif tracking-widest text-xs uppercase animate-pulse">Cargando Carrillo Gamboa & Asociados...</p>
+      </div>
+    );
+  }
+
+  try {
+    if (role === 'admin') {
+      return (
+        <div className="min-h-screen bg-slate-50">
+          <AdminDashboard onLogout={() => setRole('client')} />
+          <PWAInstallPrompt />
+          {/* Floating Role Switcher for Admin */}
+          <div className="fixed top-24 right-0 z-[60] flex flex-col items-end pointer-events-none">
+            <motion.div 
+              initial={{ x: 100 }}
+              animate={{ x: 0 }}
+              className="bg-navy/90 backdrop-blur-md border border-gold/30 rounded-l-xl p-3 shadow-2xl pointer-events-auto flex items-center gap-3 group hover:pr-6 transition-all"
+            >
+              <div className="flex flex-col items-end">
+                <p className="text-[10px] text-gold uppercase tracking-widest font-bold">Modo de Vista</p>
+                <p className="text-xs text-white font-bold">Admin / Público</p>
+              </div>
+              <button 
+                onClick={() => setRole('client')}
+                className="px-3 h-10 gold-gradient rounded-lg flex items-center justify-center text-navy shadow-lg hover:scale-110 active:scale-95 transition-all gap-2"
+                title="Cambiar a Vista Público"
+              >
+                <span className="text-[10px] font-black uppercase">Switch</span>
+                <Users className="w-4 h-4" />
+              </button>
+            </motion.div>
+          </div>
+          <Chatbot role="admin" />
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen overflow-x-hidden bg-slate-50">
+        <Navbar />
+        
+        {/* Prominent Role Switcher for Demo */}
         <div className="fixed top-24 right-0 z-[60] flex flex-col items-end pointer-events-none">
           <motion.div 
             initial={{ x: 100 }}
@@ -1585,65 +1632,52 @@ export default function App() {
               <p className="text-xs text-white font-bold">Admin / Público</p>
             </div>
             <button 
-              onClick={() => setRole('client')}
+              onClick={() => setRole(role === 'client' ? 'admin' : 'client')}
               className="px-3 h-10 gold-gradient rounded-lg flex items-center justify-center text-navy shadow-lg hover:scale-110 active:scale-95 transition-all gap-2"
-              title="Cambiar a Vista Público"
+              title={role === 'client' ? 'Cambiar a Vista Admin' : 'Cambiar a Vista Cliente'}
             >
               <span className="text-[10px] font-black uppercase">Switch</span>
-              <Users className="w-4 h-4" />
+              {role === 'client' ? <Settings className="w-4 h-4" /> : <Users className="w-4 h-4" />}
             </button>
           </motion.div>
+          
+          {role === 'client' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-2 mr-4 bg-amber-500 text-white text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter shadow-lg"
+            >
+              Demo: Haz clic para ver el Panel Admin
+            </motion.div>
+          )}
         </div>
-      </>
+
+        <Hero />
+        <About />
+        <Services />
+        <BookingSystem />
+        <Testimonials />
+        <AIScanner />
+        <Contact />
+        <Footer />
+        <Chatbot role="client" />
+        <PWAInstallPrompt />
+      </div>
+    );
+  } catch (error) {
+    console.error("Critical error in App:", error);
+    return (
+      <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-6 text-center">
+        <AlertTriangle className="text-gold w-16 h-16 mb-4" />
+        <h1 className="text-2xl font-serif text-white mb-2">Error de Carga</h1>
+        <p className="text-white/60 max-w-md">La aplicación encontró un problema inesperado. Por favor, intenta recargar la página.</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-8 gold-gradient text-navy px-8 py-3 rounded-xl font-bold uppercase tracking-widest hover:scale-105 transition-all"
+        >
+          Recargar Aplicación
+        </button>
+      </div>
     );
   }
-
-  return (
-    <div className="min-h-screen overflow-x-hidden bg-slate-50">
-      <Navbar />
-      
-      {/* Prominent Role Switcher for Demo */}
-      <div className="fixed top-24 right-0 z-[60] flex flex-col items-end pointer-events-none">
-        <motion.div 
-          initial={{ x: 100 }}
-          animate={{ x: 0 }}
-          className="bg-navy/90 backdrop-blur-md border border-gold/30 rounded-l-xl p-3 shadow-2xl pointer-events-auto flex items-center gap-3 group hover:pr-6 transition-all"
-        >
-          <div className="flex flex-col items-end">
-            <p className="text-[10px] text-gold uppercase tracking-widest font-bold">Modo de Vista</p>
-            <p className="text-xs text-white font-bold">Admin / Público</p>
-          </div>
-          <button 
-            onClick={() => setRole(role === 'client' ? 'admin' : 'client')}
-            className="px-3 h-10 gold-gradient rounded-lg flex items-center justify-center text-navy shadow-lg hover:scale-110 active:scale-95 transition-all gap-2"
-            title={role === 'client' ? 'Cambiar a Vista Admin' : 'Cambiar a Vista Cliente'}
-          >
-            <span className="text-[10px] font-black uppercase">Switch</span>
-            {role === 'client' ? <Settings className="w-4 h-4" /> : <Users className="w-4 h-4" />}
-          </button>
-        </motion.div>
-        
-        {role === 'client' && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-2 mr-4 bg-amber-500 text-white text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter shadow-lg"
-          >
-            Demo: Haz clic para ver el Panel Admin
-          </motion.div>
-        )}
-      </div>
-
-      <Hero />
-      <About />
-      <Services />
-      <BookingSystem />
-      <Testimonials />
-      <AIScanner />
-      <Contact />
-      <Footer />
-      <Chatbot role="client" />
-      <PWAInstallPrompt />
-    </div>
-  );
 }
