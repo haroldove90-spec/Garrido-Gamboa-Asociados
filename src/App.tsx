@@ -108,46 +108,161 @@ const Navbar = () => {
 };
 
 const Hero = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const slides = [
+    {
+      image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=2070",
+      title: "Tu éxito, nuestra meta.",
+      subtitle: "Excelencia en Asesoría Integral",
+      desc: "Estrategias fiscales, legales y contables diseñadas para proteger tu patrimonio y potenciar el crecimiento de tu empresa en México."
+    },
+    {
+      image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2069",
+      title: "Solidez Legal y Fiscal.",
+      subtitle: "Protección Patrimonial",
+      desc: "Defensa jurídica especializada y planeación fiscal estratégica para blindar tus activos frente a cualquier contingencia."
+    },
+    {
+      image: "https://images.unsplash.com/photo-1454165833767-027ffea10c3b?auto=format&fit=crop&q=80&w=2070",
+      title: "Innovación en Consultoría.",
+      subtitle: "Tecnología y Derecho",
+      desc: "Implementamos herramientas de IA para diagnósticos precisos, permitiéndote tomar decisiones informadas en tiempo real."
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <section id="home" className="relative h-screen flex items-center overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=2070" 
-          alt="Luxury Office" 
-          className="w-full h-full object-cover brightness-[0.3]"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/50 to-transparent" />
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div 
+          key={currentSlide}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1 }}
+          className="absolute inset-0 z-0"
+        >
+          <img 
+            src={slides[currentSlide].image} 
+            alt="Hero Slide" 
+            className="w-full h-full object-cover brightness-[0.3] scale-105 animate-slow-zoom"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/50 to-transparent" />
+        </motion.div>
+      </AnimatePresence>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
-        <motion.div 
-          initial={{ opacity: 0, x: -50 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-2xl"
-        >
-          <span className="text-gold font-bold tracking-[0.3em] uppercase text-sm mb-4 block">Excelencia en Asesoría Integral</span>
-          <h1 className="text-5xl md:text-7xl font-serif text-white leading-tight mb-6">
-            Tu éxito, <br />
-            <span className="text-gold italic">nuestra meta.</span>
-          </h1>
-          <p className="text-white/70 text-lg mb-10 max-w-lg leading-relaxed">
-            Estrategias fiscales, legales y contables diseñadas para proteger tu patrimonio y potenciar el crecimiento de tu empresa en México.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button className="gold-gradient text-navy px-8 py-4 rounded-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 group">
-              Nuestros Servicios <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button className="border border-white/30 text-white hover:bg-white/10 px-8 py-4 rounded-sm font-bold uppercase tracking-widest transition-all">
-              Conócenos
-            </button>
-          </div>
-        </motion.div>
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={currentSlide}
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 50 }}
+            transition={{ duration: 0.8 }}
+            className="max-w-2xl"
+          >
+            <span className="text-gold font-bold tracking-[0.3em] uppercase text-sm mb-4 block">
+              {slides[currentSlide].subtitle}
+            </span>
+            <h1 className="text-5xl md:text-7xl font-serif text-white leading-tight mb-6">
+              {slides[currentSlide].title.split(',')[0]} <br />
+              <span className="text-gold italic">{slides[currentSlide].title.split(',')[1] || ''}</span>
+            </h1>
+            <p className="text-white/70 text-lg mb-10 max-w-lg leading-relaxed">
+              {slides[currentSlide].desc}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button className="gold-gradient text-navy px-8 py-4 rounded-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2 group">
+                Nuestros Servicios <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button className="border border-white/30 text-white hover:bg-white/10 px-8 py-4 rounded-sm font-bold uppercase tracking-widest transition-all">
+                Conócenos
+              </button>
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
-        <div className="w-px h-12 bg-gradient-to-b from-gold to-transparent" />
+      {/* Slide Indicators */}
+      <div className="absolute bottom-10 right-10 z-20 flex gap-4">
+        {slides.map((_, i) => (
+          <button 
+            key={i}
+            onClick={() => setCurrentSlide(i)}
+            className={`h-1 transition-all duration-300 ${currentSlide === i ? 'w-12 bg-gold' : 'w-6 bg-white/30'}`}
+          />
+        ))}
+      </div>
+
+      <div className="absolute bottom-10 left-10 z-20 hidden md:flex items-center gap-4 text-white/50 text-xs tracking-widest uppercase">
+        <span className="text-gold font-bold">0{currentSlide + 1}</span>
+        <div className="w-12 h-px bg-white/20" />
+        <span>0{slides.length}</span>
+      </div>
+    </section>
+  );
+};
+
+const Testimonials = () => {
+  const testimonials = [
+    {
+      name: "Roberto Sánchez",
+      role: "CEO, TechLogistics MX",
+      content: "La asesoría fiscal de Carrillo Gamboa transformó nuestra estructura corporativa. Su profesionalismo y atención al detalle son inigualables.",
+      image: "https://i.pravatar.cc/150?u=roberto"
+    },
+    {
+      name: "Elena Villarreal",
+      role: "Directora de Finanzas, Grupo Arcos",
+      content: "El escáner de riesgo IA nos dio la claridad que necesitábamos en un momento crítico. Una firma que realmente abraza la tecnología.",
+      image: "https://i.pravatar.cc/150?u=elena"
+    },
+    {
+      name: "Carlos Mendoza",
+      role: "Fundador, Mendoza & Co.",
+      content: "Más que un despacho, son socios estratégicos. Su capacidad para resolver litigios complejos nos ha dado una tranquilidad invaluable.",
+      image: "https://i.pravatar.cc/150?u=carlos"
+    }
+  ];
+
+  return (
+    <section className="py-24 bg-white">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <span className="text-gold font-bold tracking-widest uppercase text-xs mb-4 block">Testimonios</span>
+          <h2 className="text-4xl font-serif text-navy">La voz de nuestros <span className="text-gold">clientes</span></h2>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {testimonials.map((t, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="p-8 bg-slate-50 border border-slate-100 rounded-sm relative"
+            >
+              <div className="text-gold/20 absolute top-4 right-8 text-6xl font-serif">“</div>
+              <p className="text-slate-600 italic mb-8 relative z-10 leading-relaxed">
+                "{t.content}"
+              </p>
+              <div className="flex items-center gap-4">
+                <img src={t.image} alt={t.name} className="w-12 h-12 rounded-full grayscale" />
+                <div>
+                  <h4 className="font-bold text-navy text-sm">{t.name}</h4>
+                  <p className="text-gold text-[10px] uppercase tracking-widest font-bold">{t.role}</p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -554,6 +669,7 @@ export default function App() {
       <Hero />
       <About />
       <Services />
+      <Testimonials />
       <AIScanner />
       <Contact />
       <Footer />

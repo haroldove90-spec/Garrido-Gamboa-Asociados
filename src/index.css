@@ -24,3 +24,12 @@
 .navy-gradient {
   background: linear-gradient(135deg, #0A192F 0%, #112240 100%);
 }
+
+@keyframes slow-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+
+.animate-slow-zoom {
+  animation: slow-zoom 20s infinite alternate linear;
+}
