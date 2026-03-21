@@ -30,7 +30,8 @@ import {
   Settings,
   LogOut,
   Clock,
-  MessageCircle
+  MessageCircle,
+  Download
 } from 'lucide-react';
 import { analyzeTaxRisk, RiskAnalysis, analyzeBookingRequest, BookingAnalysis, getChatbotResponse } from './services/geminiService';
 
@@ -139,6 +140,86 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
   );
 };
 
+const PWAInstallPrompt = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowPrompt(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    } else {
+      console.log('User dismissed the install prompt');
+    }
+    setDeferredPrompt(null);
+    setShowPrompt(false);
+  };
+
+  return (
+    <AnimatePresence>
+      {showPrompt && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 50 }}
+          className="fixed bottom-24 left-6 right-6 md:left-auto md:right-6 md:w-96 z-[110] bg-white rounded-2xl shadow-2xl border border-gold/30 overflow-hidden"
+        >
+          <div className="navy-gradient p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 gold-gradient rounded-xl flex items-center justify-center shadow-lg">
+                <Download className="text-navy w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-sm">Instalar WebApp</h3>
+                <p className="text-gold text-[10px] uppercase tracking-widest font-medium">Acceso rápido y seguro</p>
+              </div>
+            </div>
+            <button onClick={() => setShowPrompt(false)} className="text-white/70 hover:text-white transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-5 bg-slate-50">
+            <p className="text-slate-600 text-sm mb-4 leading-relaxed">
+              Lleva a <span className="font-bold text-navy">Carrillo Gamboa & Asociados</span> en tu pantalla de inicio para una experiencia más fluida y profesional.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleInstall}
+                className="flex-1 gold-gradient text-navy font-bold py-3 rounded-xl text-sm shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Instalar Ahora
+              </button>
+              <button
+                onClick={() => setShowPrompt(false)}
+                className="px-4 py-3 rounded-xl text-slate-400 text-sm font-medium hover:bg-slate-100 transition-colors"
+              >
+                Quizás luego
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -160,6 +241,33 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
     { id: 1, sender: 'Carlos Ruiz', subject: 'Duda sobre IVA', message: '¿Cómo afecta la nueva reforma al IVA acreditable?', date: 'Hace 2 horas' },
     { id: 2, sender: 'Elena Torres', subject: 'Cita Urgente', message: 'Necesito revisar mi declaración anual lo antes posible.', date: 'Hace 5 horas' },
     { id: 3, sender: 'Sistemas Globales', subject: 'Contrato Laboral', message: 'Requerimos revisión de 5 contratos de outsourcing.', date: 'Ayer' },
+    { id: 4, sender: 'Lucía Méndez', subject: 'Auditoría Externa', message: '¿Cuáles son los requisitos para la auditoría de este año?', date: 'Ayer' },
+    { id: 5, sender: 'Inmobiliaria CDMX', subject: 'Pago de Impuestos', message: 'Confirmación de recepción de documentos para el pago trimestral.', date: 'Hace 2 días' },
+  ];
+
+  const allClients = [
+    { id: 1, name: 'Juan Pérez', email: 'juan.perez@email.com', company: 'Independiente', status: 'Activo', lastService: 'Asesoría Fiscal' },
+    { id: 2, name: 'Empresa ABC', email: 'contacto@abc.com', company: 'ABC Corp', status: 'Activo', lastService: 'Auditoría' },
+    { id: 3, name: 'María García', email: 'm.garcia@email.com', company: 'García & Co', status: 'Inactivo', lastService: 'Defensa Legal' },
+    { id: 4, name: 'Roberto López', email: 'roberto@lopez.mx', company: 'López Consultores', status: 'Activo', lastService: 'Contabilidad' },
+    { id: 5, name: 'Sistemas Globales', email: 'admin@sistemas.com', company: 'Sistemas Globales S.A.', status: 'Activo', lastService: 'Revisión Contratos' },
+    { id: 6, name: 'Elena Torres', email: 'elena.t@email.com', company: 'Independiente', status: 'Pendiente', lastService: 'Declaración Anual' },
+  ];
+
+  const incomeTransactions = [
+    { id: 1, client: 'Empresa ABC', amount: '$45,000', date: '2026-03-21', concept: 'Auditoría Anual', status: 'Pagado' },
+    { id: 2, client: 'Juan Pérez', amount: '$8,500', date: '2026-03-20', concept: 'Asesoría Fiscal Mensual', status: 'Pagado' },
+    { id: 3, client: 'Sistemas Globales', amount: '$12,000', date: '2026-03-19', concept: 'Revisión de Contratos', status: 'Pendiente' },
+    { id: 4, client: 'Roberto López', amount: '$15,000', date: '2026-03-18', concept: 'Contabilidad Trimestral', status: 'Pagado' },
+    { id: 5, client: 'Inmobiliaria CDMX', amount: '$22,500', date: '2026-03-17', concept: 'Estrategia Fiscal', status: 'Pagado' },
+  ];
+
+  const fullAgenda = [
+    { time: '09:00 AM', title: 'Reunión Fiscal - Juan P.', type: 'Presencial', location: 'Oficina Central' },
+    { time: '11:30 AM', title: 'Auditoría Empresa ABC', type: 'Virtual', location: 'Zoom' },
+    { time: '01:00 PM', title: 'Almuerzo de Negocios - Cliente VIP', type: 'Presencial', location: 'Restaurante Lomas' },
+    { time: '04:00 PM', title: 'Defensa Legal - María G.', type: 'Presencial', location: 'Oficina Central' },
+    { time: '06:00 PM', title: 'Revisión de Cierre Mensual', type: 'Interna', location: 'Sala de Juntas' },
   ];
 
   return (
@@ -289,11 +397,7 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                   <h4 className="font-serif text-lg text-navy mb-8">Agenda de Hoy</h4>
                   <div className="space-y-6">
-                    {[
-                      { time: '09:00 AM', title: 'Reunión Fiscal - Juan P.', type: 'Presencial' },
-                      { time: '11:30 AM', title: 'Auditoría Empresa ABC', type: 'Virtual' },
-                      { time: '04:00 PM', title: 'Defensa Legal - María G.', type: 'Presencial' },
-                    ].map((event, i) => (
+                    {fullAgenda.slice(0, 3).map((event, i) => (
                       <div key={i} className="flex gap-4">
                         <div className="text-xs font-bold text-gold shrink-0 w-16">{event.time}</div>
                         <div className="flex-1 border-l-2 border-gold/20 pl-4">
@@ -303,9 +407,169 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
                       </div>
                     ))}
                   </div>
-                  <button className="w-full mt-8 py-3 border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-widest text-navy hover:bg-slate-50 transition-colors">
+                  <button onClick={() => setActiveTab('agenda')} className="w-full mt-8 py-3 border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-widest text-navy hover:bg-slate-50 transition-colors">
                     Ver Calendario Completo
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'clients' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                <h4 className="font-serif text-xl text-navy">Base de Datos de Clientes</h4>
+                <div className="flex gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input type="text" placeholder="Buscar cliente..." className="pl-10 pr-4 py-2 bg-slate-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-gold outline-none" />
+                  </div>
+                  <button className="gold-gradient text-navy px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Nuevo Cliente</button>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-100">
+                      <th className="p-6 font-bold">Nombre / Empresa</th>
+                      <th className="p-6 font-bold">Email</th>
+                      <th className="p-6 font-bold">Último Servicio</th>
+                      <th className="p-6 font-bold">Estado</th>
+                      <th className="p-6 font-bold text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {allClients.map((client) => (
+                      <tr key={client.id} className="border-b border-slate-50 last:border-none hover:bg-slate-50/50 transition-colors">
+                        <td className="p-6">
+                          <p className="font-bold text-navy">{client.name}</p>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-widest">{client.company}</p>
+                        </td>
+                        <td className="p-6 text-slate-500">{client.email}</td>
+                        <td className="p-6 text-slate-500">{client.lastService}</td>
+                        <td className="p-6">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${client.status === 'Activo' ? 'bg-emerald-50 text-emerald-600' : client.status === 'Pendiente' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-400'}`}>
+                            {client.status}
+                          </span>
+                        </td>
+                        <td className="p-6 text-right">
+                          <button className="text-navy hover:text-gold transition-colors"><ChevronRight className="w-5 h-5" /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'agenda' && (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              <div className="lg:col-span-3 space-y-6">
+                <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                  <div className="flex justify-between items-center mb-8">
+                    <h4 className="font-serif text-xl text-navy">Calendario de Actividades</h4>
+                    <div className="flex gap-2">
+                      <button className="px-4 py-2 bg-slate-50 rounded-lg text-xs font-bold text-navy">Hoy</button>
+                      <button className="px-4 py-2 bg-navy text-white rounded-lg text-xs font-bold">Semana</button>
+                      <button className="px-4 py-2 bg-slate-50 rounded-lg text-xs font-bold text-navy">Mes</button>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {fullAgenda.map((event, i) => (
+                      <div key={i} className="flex items-center gap-6 p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-gold/30 transition-all group">
+                        <div className="w-20 text-center">
+                          <p className="text-xs font-bold text-gold">{event.time.split(' ')[0]}</p>
+                          <p className="text-[10px] text-slate-400 font-bold">{event.time.split(' ')[1]}</p>
+                        </div>
+                        <div className="flex-1">
+                          <h5 className="font-bold text-navy text-sm mb-1">{event.title}</h5>
+                          <div className="flex items-center gap-4 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {event.type}</span>
+                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {event.location}</span>
+                          </div>
+                        </div>
+                        <button className="opacity-0 group-hover:opacity-100 transition-opacity text-gold font-bold text-xs uppercase tracking-widest">Editar</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-6">
+                <div className="bg-navy p-8 rounded-2xl shadow-xl text-white">
+                  <h4 className="font-serif text-lg mb-4">Resumen Semanal</h4>
+                  <div className="space-y-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/60">Citas Totales</span>
+                      <span className="font-bold">24</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/60">Presenciales</span>
+                      <span className="font-bold">15</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/60">Virtuales</span>
+                      <span className="font-bold">9</span>
+                    </div>
+                  </div>
+                  <button className="w-full mt-8 gold-gradient text-navy py-3 rounded-xl text-xs font-bold uppercase tracking-widest">Agendar Nueva</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'income' && (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                  <p className="text-slate-400 text-xs uppercase tracking-widest font-bold mb-1">Total Facturado</p>
+                  <h3 className="text-2xl font-serif text-navy">$1,240,000</h3>
+                  <p className="text-emerald-500 text-xs font-bold mt-2">+15% vs mes anterior</p>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                  <p className="text-slate-400 text-xs uppercase tracking-widest font-bold mb-1">Pendiente de Cobro</p>
+                  <h3 className="text-2xl font-serif text-navy">$185,000</h3>
+                  <p className="text-amber-500 text-xs font-bold mt-2">4 facturas vencidas</p>
+                </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                  <p className="text-slate-400 text-xs uppercase tracking-widest font-bold mb-1">Ticket Promedio</p>
+                  <h3 className="text-2xl font-serif text-navy">$18,500</h3>
+                  <p className="text-slate-400 text-xs font-bold mt-2">Estable</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                  <h4 className="font-serif text-xl text-navy">Historial de Ingresos</h4>
+                  <button className="text-gold text-xs font-bold uppercase tracking-widest hover:underline">Exportar Reporte</button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-100">
+                        <th className="p-6 font-bold">Cliente</th>
+                        <th className="p-6 font-bold">Concepto</th>
+                        <th className="p-6 font-bold">Fecha</th>
+                        <th className="p-6 font-bold">Monto</th>
+                        <th className="p-6 font-bold">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm">
+                      {incomeTransactions.map((tx) => (
+                        <tr key={tx.id} className="border-b border-slate-50 last:border-none">
+                          <td className="p-6 font-bold text-navy">{tx.client}</td>
+                          <td className="p-6 text-slate-500">{tx.concept}</td>
+                          <td className="p-6 text-slate-500">{tx.date}</td>
+                          <td className="p-6 font-bold text-navy">{tx.amount}</td>
+                          <td className="p-6">
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${tx.status === 'Pagado' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                              {tx.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -340,11 +604,29 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
             </div>
           )}
 
-          {activeTab !== 'overview' && activeTab !== 'messages' && (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400">
-              <Settings className="w-12 h-12 mb-4 opacity-20" />
-              <p className="font-serif text-xl">Módulo en Desarrollo</p>
-              <p className="text-sm">Esta sección estará disponible en la próxima actualización.</p>
+          {activeTab === 'settings' && (
+            <div className="max-w-2xl bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h4 className="font-serif text-xl text-navy mb-8">Configuración del Perfil</h4>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Nombre del Despacho</label>
+                    <input type="text" defaultValue="Carrillo Gamboa & Asociados" className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-gold outline-none" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Email de Contacto</label>
+                    <input type="email" defaultValue="admin@carrillogamboa.mx" className="w-full p-3 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-gold outline-none" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Notificaciones</label>
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
+                    <input type="checkbox" defaultChecked className="w-4 h-4 text-gold rounded focus:ring-gold" />
+                    <span className="text-sm text-navy">Recibir alertas de nuevas citas por email</span>
+                  </div>
+                </div>
+                <button className="gold-gradient text-navy w-full py-4 rounded-xl font-bold uppercase tracking-widest text-sm mt-4">Guardar Cambios</button>
+              </div>
             </div>
           )}
         </main>
@@ -1250,7 +1532,12 @@ export default function App() {
   const [role, setRole] = useState<'admin' | 'client'>('client');
 
   if (role === 'admin') {
-    return <AdminDashboard onLogout={() => setRole('client')} />;
+    return (
+      <>
+        <AdminDashboard onLogout={() => setRole('client')} />
+        <PWAInstallPrompt />
+      </>
+    );
   }
 
   return (
@@ -1273,6 +1560,7 @@ export default function App() {
       <Contact />
       <Footer />
       <Chatbot role="client" />
+      <PWAInstallPrompt />
     </div>
   );
 }
