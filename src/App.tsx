@@ -20,11 +20,339 @@ import {
   Linkedin,
   Instagram,
   Calendar,
-  User
+  User,
+  LayoutDashboard,
+  Users,
+  DollarSign,
+  TrendingUp,
+  MessageSquare,
+  Send,
+  Settings,
+  LogOut,
+  Clock,
+  MessageCircle
 } from 'lucide-react';
-import { analyzeTaxRisk, RiskAnalysis, analyzeBookingRequest, BookingAnalysis } from './services/geminiService';
+import { analyzeTaxRisk, RiskAnalysis, analyzeBookingRequest, BookingAnalysis, getChatbotResponse } from './services/geminiService';
 
 // --- Components ---
+
+const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<{ text: string, sender: 'user' | 'bot' }[]>([
+    { text: role === 'admin' ? 'Bienvenido, Administrador. ¿En qué puedo apoyarte con la gestión hoy?' : 'Hola, soy el asistente virtual de Carrillo Gamboa & Asociados. ¿En qué puedo ayudarte?', sender: 'bot' }
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    const userMsg = input;
+    setInput('');
+    setMessages(prev => [...prev, { text: userMsg, sender: 'user' }]);
+    setLoading(true);
+
+    try {
+      const response = await getChatbotResponse(userMsg, role);
+      setMessages(prev => [...prev, { text: response, sender: 'bot' }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { text: 'Lo siento, hubo un error.', sender: 'bot' }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[100]">
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            className="bg-white w-80 md:w-96 h-[500px] rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden mb-4"
+          >
+            <div className="navy-gradient p-4 text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 gold-gradient rounded-full flex items-center justify-center">
+                  <MessageCircle className="text-navy w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">Asistente Inteligente</p>
+                  <p className="text-[10px] text-gold uppercase tracking-widest">En línea</p>
+                </div>
+              </div>
+              <button onClick={() => setIsOpen(false)}><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.sender === 'user' ? 'bg-navy text-white rounded-tr-none' : 'bg-white text-slate-700 shadow-sm rounded-tl-none border border-slate-100'}`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-white p-3 rounded-2xl shadow-sm rounded-tl-none border border-slate-100 flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" />
+                    <div className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <div className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce [animation-delay:0.4s]" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-white border-t border-slate-100 flex gap-2">
+              <input 
+                type="text" 
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Escribe tu mensaje..."
+                className="flex-1 bg-slate-100 border-none rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-gold outline-none"
+              />
+              <button 
+                onClick={handleSend}
+                disabled={loading || !input.trim()}
+                className="w-10 h-10 gold-gradient rounded-full flex items-center justify-center text-navy hover:scale-110 transition-transform disabled:opacity-50"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-14 h-14 gold-gradient rounded-full shadow-2xl flex items-center justify-center text-navy hover:scale-110 active:scale-95 transition-all group"
+      >
+        <MessageSquare className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+        {!isOpen && (
+          <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+            1
+          </div>
+        )}
+      </button>
+    </div>
+  );
+};
+
+const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const stats = [
+    { label: 'Ingresos Mensuales', value: '$425,000', change: '+12.5%', icon: <DollarSign className="w-5 h-5" /> },
+    { label: 'Nuevos Clientes', value: '48', change: '+8.2%', icon: <Users className="w-5 h-5" /> },
+    { label: 'Citas Pendientes', value: '12', change: '-2', icon: <Calendar className="w-5 h-5" /> },
+    { label: 'Tasa de Conversión', value: '24%', change: '+3.1%', icon: <TrendingUp className="w-5 h-5" /> },
+  ];
+
+  const recentRequests = [
+    { id: 1, name: 'Juan Pérez', service: 'Asesoría Fiscal', date: '2026-03-21', status: 'Pendiente', priority: 'Alta' },
+    { id: 2, name: 'Empresa ABC', service: 'Auditoría', date: '2026-03-20', status: 'En Proceso', priority: 'Normal' },
+    { id: 3, name: 'María García', service: 'Defensa Legal', date: '2026-03-20', status: 'Completado', priority: 'Urgente' },
+    { id: 4, name: 'Roberto López', service: 'Contabilidad', date: '2026-03-19', status: 'Pendiente', priority: 'Normal' },
+  ];
+
+  const clientMessages = [
+    { id: 1, sender: 'Carlos Ruiz', subject: 'Duda sobre IVA', message: '¿Cómo afecta la nueva reforma al IVA acreditable?', date: 'Hace 2 horas' },
+    { id: 2, sender: 'Elena Torres', subject: 'Cita Urgente', message: 'Necesito revisar mi declaración anual lo antes posible.', date: 'Hace 5 horas' },
+    { id: 3, sender: 'Sistemas Globales', subject: 'Contrato Laboral', message: 'Requerimos revisión de 5 contratos de outsourcing.', date: 'Ayer' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-100 flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-navy text-white flex flex-col">
+        <div className="p-6 flex items-center gap-2 border-b border-white/10">
+          <div className="w-8 h-8 gold-gradient rounded-sm flex items-center justify-center">
+            <Scale className="text-navy w-5 h-5" />
+          </div>
+          <span className="font-serif text-sm font-bold tracking-tighter">ADMIN PANEL</span>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-2">
+          {[
+            { id: 'overview', label: 'Métricas', icon: <LayoutDashboard className="w-4 h-4" /> },
+            { id: 'clients', label: 'Clientes', icon: <Users className="w-4 h-4" /> },
+            { id: 'agenda', label: 'Agenda', icon: <Calendar className="w-4 h-4" /> },
+            { id: 'messages', label: 'Mensajes', icon: <MessageSquare className="w-4 h-4" /> },
+            { id: 'income', label: 'Ingresos', icon: <DollarSign className="w-4 h-4" /> },
+            { id: 'settings', label: 'Configuración', icon: <Settings className="w-4 h-4" /> },
+          ].map((item) => (
+            <button 
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === item.id ? 'bg-gold text-navy' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <button 
+          onClick={onLogout}
+          className="p-6 flex items-center gap-3 text-white/40 hover:text-rose-400 transition-colors border-t border-white/10"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Cerrar Sesión</span>
+        </button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-8">
+          <h2 className="text-xl font-serif text-navy capitalize">{activeTab}</h2>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm font-bold text-navy">Admin User</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">Super Admin</p>
+            </div>
+            <div className="w-10 h-10 bg-slate-200 rounded-full overflow-hidden">
+              <img src="https://i.pravatar.cc/100?u=admin" alt="Admin" />
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-8">
+          {activeTab === 'overview' && (
+            <div className="space-y-8">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {stats.map((stat, i) => (
+                  <motion.div 
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="p-2 bg-slate-50 rounded-lg text-gold">
+                        {stat.icon}
+                      </div>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${stat.change.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                        {stat.change}
+                      </span>
+                    </div>
+                    <p className="text-slate-400 text-xs uppercase tracking-widest font-bold mb-1">{stat.label}</p>
+                    <h3 className="text-2xl font-serif text-navy">{stat.value}</h3>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Charts & Table */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                  <div className="flex justify-between items-center mb-8">
+                    <h4 className="font-serif text-lg text-navy">Solicitudes Recientes</h4>
+                    <button className="text-gold text-xs font-bold uppercase tracking-widest hover:underline">Ver Todo</button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-100">
+                          <th className="pb-4 font-bold">Cliente</th>
+                          <th className="pb-4 font-bold">Servicio</th>
+                          <th className="pb-4 font-bold">Fecha</th>
+                          <th className="pb-4 font-bold">Prioridad</th>
+                          <th className="pb-4 font-bold">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm">
+                        {recentRequests.map((req) => (
+                          <tr key={req.id} className="border-b border-slate-50 last:border-none">
+                            <td className="py-4 font-bold text-navy">{req.name}</td>
+                            <td className="py-4 text-slate-500">{req.service}</td>
+                            <td className="py-4 text-slate-500">{req.date}</td>
+                            <td className="py-4">
+                              <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${req.priority === 'Urgente' ? 'bg-rose-50 text-rose-600' : req.priority === 'Alta' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-600'}`}>
+                                {req.priority}
+                              </span>
+                            </td>
+                            <td className="py-4">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${req.status === 'Completado' ? 'bg-emerald-500' : req.status === 'En Proceso' ? 'bg-blue-500' : 'bg-amber-500'}`} />
+                                <span className="text-slate-600">{req.status}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                  <h4 className="font-serif text-lg text-navy mb-8">Agenda de Hoy</h4>
+                  <div className="space-y-6">
+                    {[
+                      { time: '09:00 AM', title: 'Reunión Fiscal - Juan P.', type: 'Presencial' },
+                      { time: '11:30 AM', title: 'Auditoría Empresa ABC', type: 'Virtual' },
+                      { time: '04:00 PM', title: 'Defensa Legal - María G.', type: 'Presencial' },
+                    ].map((event, i) => (
+                      <div key={i} className="flex gap-4">
+                        <div className="text-xs font-bold text-gold shrink-0 w-16">{event.time}</div>
+                        <div className="flex-1 border-l-2 border-gold/20 pl-4">
+                          <p className="text-sm font-bold text-navy">{event.title}</p>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-widest">{event.type}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="w-full mt-8 py-3 border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-widest text-navy hover:bg-slate-50 transition-colors">
+                    Ver Calendario Completo
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'messages' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+              <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                  <h4 className="font-serif text-lg text-navy">Bandeja de Entrada</h4>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {clientMessages.map((msg) => (
+                    <button key={msg.id} className="w-full p-6 text-left border-b border-slate-50 hover:bg-slate-50 transition-colors group">
+                      <div className="flex justify-between items-start mb-2">
+                        <p className="font-bold text-navy text-sm">{msg.sender}</p>
+                        <span className="text-[10px] text-slate-400">{msg.date}</span>
+                      </div>
+                      <p className="text-xs font-bold text-gold mb-1">{msg.subject}</p>
+                      <p className="text-xs text-slate-500 line-clamp-1">{msg.message}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center text-slate-400 p-12 text-center">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                  <MessageSquare className="w-8 h-8 opacity-20" />
+                </div>
+                <h4 className="font-serif text-xl text-navy mb-2">Selecciona un mensaje</h4>
+                <p className="text-sm max-w-xs">Haz clic en un mensaje de la lista para ver la conversación completa y responder.</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab !== 'overview' && activeTab !== 'messages' && (
+            <div className="flex flex-col items-center justify-center h-full text-slate-400">
+              <Settings className="w-12 h-12 mb-4 opacity-20" />
+              <p className="font-serif text-xl">Módulo en Desarrollo</p>
+              <p className="text-sm">Esta sección estará disponible en la próxima actualización.</p>
+            </div>
+          )}
+        </main>
+      </div>
+      <Chatbot role="admin" />
+    </div>
+  );
+};
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -919,9 +1247,23 @@ const Footer = () => {
 // --- Main App ---
 
 export default function App() {
+  const [role, setRole] = useState<'admin' | 'client'>('client');
+
+  if (role === 'admin') {
+    return <AdminDashboard onLogout={() => setRole('client')} />;
+  }
+
   return (
     <div className="min-h-screen">
       <Navbar />
+      {/* Hidden Admin Toggle for Demo */}
+      <button 
+        onClick={() => setRole('admin')}
+        className="fixed top-20 right-6 z-[60] w-10 h-10 bg-navy/10 hover:bg-navy/20 rounded-full flex items-center justify-center text-navy/20 hover:text-navy/50 transition-all"
+        title="Acceso Admin (Demo)"
+      >
+        <Settings className="w-5 h-5" />
+      </button>
       <Hero />
       <About />
       <Services />
@@ -930,6 +1272,7 @@ export default function App() {
       <AIScanner />
       <Contact />
       <Footer />
+      <Chatbot role="client" />
     </div>
   );
 }

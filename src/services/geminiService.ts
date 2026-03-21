@@ -102,3 +102,24 @@ export async function analyzeBookingRequest(description: string, serviceType: st
     };
   }
 }
+
+export async function getChatbotResponse(message: string, role: "admin" | "client"): Promise<string> {
+  const model = "gemini-3-flash-preview";
+  
+  const systemInstruction = role === "admin" 
+    ? "Eres el asistente inteligente del administrador del despacho Carrillo Gamboa & Asociados. Ayudas a gestionar métricas, responder dudas técnicas sobre clientes y dar resúmenes de ingresos. Sé profesional, conciso y analítico."
+    : "Eres el asistente virtual de Carrillo Gamboa & Asociados. Ayudas a clientes potenciales con dudas sobre servicios fiscales, legales y contables. Tu objetivo es ser amable, profesional y guiarlos a agendar una cita si su duda es compleja.";
+
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: message,
+      config: { systemInstruction }
+    });
+
+    return response.text || "Lo siento, no pude procesar tu solicitud.";
+  } catch (error) {
+    console.error("Chatbot error:", error);
+    return "Error de conexión con el asistente.";
+  }
+}
