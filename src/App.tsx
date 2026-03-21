@@ -1531,11 +1531,36 @@ const Footer = () => {
 export default function App() {
   const [role, setRole] = useState<'admin' | 'client'>('client');
 
+  useEffect(() => {
+    console.log('App mounted successfully in role:', role);
+  }, []);
+
   if (role === 'admin') {
     return (
       <>
         <AdminDashboard onLogout={() => setRole('client')} />
         <PWAInstallPrompt />
+        {/* Floating Role Switcher for Admin */}
+        <div className="fixed top-24 right-0 z-[60] flex flex-col items-end pointer-events-none">
+          <motion.div 
+            initial={{ x: 100 }}
+            animate={{ x: 0 }}
+            className="bg-navy/90 backdrop-blur-md border border-gold/30 rounded-l-xl p-3 shadow-2xl pointer-events-auto flex items-center gap-3 group hover:pr-6 transition-all"
+          >
+            <div className="flex flex-col items-end">
+              <p className="text-[10px] text-gold uppercase tracking-widest font-bold">Modo de Vista</p>
+              <p className="text-xs text-white font-bold">Admin / Público</p>
+            </div>
+            <button 
+              onClick={() => setRole('client')}
+              className="px-3 h-10 gold-gradient rounded-lg flex items-center justify-center text-navy shadow-lg hover:scale-110 active:scale-95 transition-all gap-2"
+              title="Cambiar a Vista Público"
+            >
+              <span className="text-[10px] font-black uppercase">Switch</span>
+              <Users className="w-4 h-4" />
+            </button>
+          </motion.div>
+        </div>
       </>
     );
   }
@@ -1553,14 +1578,15 @@ export default function App() {
         >
           <div className="flex flex-col items-end">
             <p className="text-[10px] text-gold uppercase tracking-widest font-bold">Modo de Vista</p>
-            <p className="text-xs text-white font-bold">{role === 'client' ? 'Cliente / Público' : 'Administrador'}</p>
+            <p className="text-xs text-white font-bold">Admin / Público</p>
           </div>
           <button 
             onClick={() => setRole(role === 'client' ? 'admin' : 'client')}
-            className="w-10 h-10 gold-gradient rounded-lg flex items-center justify-center text-navy shadow-lg hover:scale-110 active:scale-95 transition-all"
+            className="px-3 h-10 gold-gradient rounded-lg flex items-center justify-center text-navy shadow-lg hover:scale-110 active:scale-95 transition-all gap-2"
             title={role === 'client' ? 'Cambiar a Vista Admin' : 'Cambiar a Vista Cliente'}
           >
-            {role === 'client' ? <Settings className="w-5 h-5" /> : <Users className="w-5 h-5" />}
+            <span className="text-[10px] font-black uppercase">Switch</span>
+            {role === 'client' ? <Settings className="w-4 h-4" /> : <Users className="w-4 h-4" />}
           </button>
         </motion.div>
         
