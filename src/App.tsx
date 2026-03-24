@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Component } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Scale, 
   Calculator, 
@@ -35,6 +35,8 @@ import {
 } from 'lucide-react';
 import { analyzeTaxRisk, RiskAnalysis, analyzeBookingRequest, BookingAnalysis, getChatbotResponse } from './services/geminiService';
 import { supabase } from './lib/supabase';
+
+console.log('App.tsx is executing');
 
 // --- Error Boundary ---
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -75,6 +77,7 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
 // --- Components ---
 
 const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
+  console.log('Chatbot is rendering, role:', role);
   const [isOpen, setIsOpen] = useState(false);
   const [userInfo, setUserInfo] = useState<{ name: string, phone: string } | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -286,6 +289,7 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
 };
 
 const PWAInstallPrompt = () => {
+  console.log('PWAInstallPrompt is rendering');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPrompt, setShowPrompt] = useState(false);
 
@@ -1892,6 +1896,7 @@ export default function App() {
 }
 
 function AppContent() {
+  console.log('AppContent is rendering');
   const [role, setRole] = useState<'admin' | 'client'>('client');
   const [isAuthReady, setIsAuthReady] = useState(false);
 
@@ -1906,6 +1911,7 @@ function AppContent() {
   }, []);
 
   if (!isAuthReady) {
+    console.log('Rendering loading state');
     return (
       <div className="min-h-screen bg-navy flex flex-col items-center justify-center">
         <div className="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin mb-4" />
@@ -1914,6 +1920,7 @@ function AppContent() {
     );
   }
 
+  console.log('Rendering main app content');
   return (
     <div className="min-h-screen bg-slate-50">
       {role === 'admin' ? (
