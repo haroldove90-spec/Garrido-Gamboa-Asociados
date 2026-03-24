@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Component } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Scale, 
   Calculator, 
@@ -30,8 +30,7 @@ import {
   Settings,
   LogOut,
   Clock,
-  MessageCircle,
-  Download
+  MessageCircle
 } from 'lucide-react';
 import { analyzeTaxRisk, RiskAnalysis, analyzeBookingRequest, BookingAnalysis, getChatbotResponse } from './services/geminiService';
 import { supabase } from './lib/supabase';
@@ -77,7 +76,6 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
 // --- Components ---
 
 const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
-  console.log('Chatbot is rendering, role:', role);
   const [isOpen, setIsOpen] = useState(false);
   const [userInfo, setUserInfo] = useState<{ name: string, phone: string } | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -288,86 +286,6 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
   );
 };
 
-const PWAInstallPrompt = () => {
-  console.log('PWAInstallPrompt is rendering');
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showPrompt, setShowPrompt] = useState(false);
-
-  useEffect(() => {
-    const handler = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowPrompt(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-    };
-  }, []);
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-    } else {
-      console.log('User dismissed the install prompt');
-    }
-    setDeferredPrompt(null);
-    setShowPrompt(false);
-  };
-
-  return (
-    <AnimatePresence>
-      {showPrompt && (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-24 left-6 right-6 md:left-auto md:right-6 md:w-96 z-[110] bg-white rounded-2xl shadow-2xl border border-gold/30 overflow-hidden"
-        >
-          <div className="navy-gradient p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 gold-gradient rounded-xl flex items-center justify-center shadow-lg">
-                <Download className="text-navy w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-white font-bold text-sm">Instalar WebApp</h3>
-                <p className="text-gold text-[10px] uppercase tracking-widest font-medium">Acceso rápido y seguro</p>
-              </div>
-            </div>
-            <button onClick={() => setShowPrompt(false)} className="text-white/70 hover:text-white transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="p-5 bg-slate-50">
-            <p className="text-slate-600 text-sm mb-4 leading-relaxed">
-              Lleva a <span className="font-bold text-navy">Carrillo Gamboa & Asociados</span> en tu pantalla de inicio para una experiencia más fluida y profesional.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleInstall}
-                className="flex-1 gold-gradient text-navy font-bold py-3 rounded-xl text-sm shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Instalar Ahora
-              </button>
-              <button
-                onClick={() => setShowPrompt(false)}
-                className="px-4 py-3 rounded-xl text-slate-400 text-sm font-medium hover:bg-slate-100 transition-colors"
-              >
-                Quizás luego
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
 
 const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -1995,7 +1913,6 @@ function AppContent() {
         </div>
       )}
       <Chatbot role={role} />
-      <PWAInstallPrompt />
     </div>
   );
 }

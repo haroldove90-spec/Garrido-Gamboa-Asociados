@@ -7,9 +7,9 @@ function getAI(): GoogleGenAI {
     // In Vite, environment variables are typically accessed via import.meta.env
     // but the platform instructions specify process.env.GEMINI_API_KEY.
     // We'll try to access it safely.
-    const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
     
-    if (!apiKey || apiKey === "dummy-key") {
+    if (!apiKey || apiKey === "dummy-key" || apiKey === "MY_GEMINI_API_KEY") {
       console.warn("GEMINI_API_KEY no está configurada o es inválida. Las funciones de IA no estarán disponibles.");
     }
     aiInstance = new GoogleGenAI({ apiKey: apiKey || "dummy-key" });
@@ -50,9 +50,19 @@ export async function analyzeTaxRisk(situation: string): Promise<RiskAnalysis> {
 
   try {
     const ai = getAI();
+    const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+    if (!apiKey || apiKey === "dummy-key" || apiKey === "MY_GEMINI_API_KEY") {
+      return {
+        level: "Bajo",
+        color: "Verde",
+        summary: "Error: La clave de API de Gemini no está configurada. Por favor, configúrala en el panel de secretos.",
+        recommendations: ["Configurar GEMINI_API_KEY"]
+      };
+    }
+
     const response = await ai.models.generateContent({
       model,
-      contents: prompt,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -75,7 +85,7 @@ export async function analyzeTaxRisk(situation: string): Promise<RiskAnalysis> {
     return result as RiskAnalysis;
   } catch (error) {
     console.error("Error analyzing tax risk:", error);
-    throw new Error("No se pudo completar el diagnóstico en este momento.");
+    throw new Error(`No se pudo completar el diagnóstico: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -102,9 +112,19 @@ export async function analyzeBookingRequest(description: string, serviceType: st
 
   try {
     const ai = getAI();
+    const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+    if (!apiKey || apiKey === "dummy-key" || apiKey === "MY_GEMINI_API_KEY") {
+      return {
+        priority: "Normal",
+        suggestedSpecialist: "Consultor General",
+        estimatedDuration: "60 min",
+        preliminaryNote: "Error: API Key no configurada."
+      };
+    }
+
     const response = await ai.models.generateContent({
       model,
-      contents: prompt,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: { responseMimeType: "application/json" }
     });
 
@@ -129,15 +149,21 @@ export async function getChatbotResponse(message: string, role: "admin" | "clien
 
   try {
     const ai = getAI();
+    const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+    
+    if (!apiKey || apiKey === "dummy-key" || apiKey === "MY_GEMINI_API_KEY") {
+      return "Error: La clave de API de Gemini no está configurada. Por favor, asegúrate de añadir GEMINI_API_KEY en los secretos de la aplicación.";
+    }
+
     const response = await ai.models.generateContent({
       model,
-      contents: message,
+      contents: [{ role: "user", parts: [{ text: message }] }],
       config: { systemInstruction }
     });
 
     return response.text || "Lo siento, no pude procesar tu solicitud.";
   } catch (error) {
     console.error("Chatbot error:", error);
-    return "Error de conexión con el asistente.";
+    return `Error de conexión con el asistente: ${error instanceof Error ? error.message : String(error)}`;
   }
 }
