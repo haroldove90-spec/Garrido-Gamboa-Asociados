@@ -704,7 +704,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className={`fixed w-full z-50 transition-all duration-300 bg-navy py-3 shadow-xl`}>
+    <nav className={`fixed w-full z-50 transition-all duration-300 bg-navy h-[72px] md:h-[88px] flex items-center shadow-xl`}>
       <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <img 
@@ -808,7 +808,7 @@ const Hero = () => {
   }, []);
 
   return (
-    <section id="home" className="relative h-[calc(100vh-88px)] mt-[88px] flex items-center overflow-hidden">
+    <section id="home" className="relative h-screen flex items-center overflow-hidden pt-[72px] md:pt-[88px]">
       <AnimatePresence mode="wait">
         <motion.div 
           key={currentSlide}
