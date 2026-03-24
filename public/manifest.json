@@ -4,8 +4,8 @@
   "description": "Despacho Fiscal, Legal y Contable en CDMX",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0A192F",
-  "theme_color": "#0A192F",
+  "background_color": "#131954",
+  "theme_color": "#131954",
   "icons": [
     {
       "src": "https://picsum.photos/seed/law/192/192",

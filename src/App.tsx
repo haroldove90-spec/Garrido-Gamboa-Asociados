@@ -290,9 +290,12 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
       <div className={`fixed inset-y-0 left-0 w-64 bg-navy text-white flex flex-col z-50 transition-transform duration-300 transform lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex items-center justify-between border-b border-white/10">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 gold-gradient rounded-sm flex items-center justify-center">
-              <Scale className="text-navy w-5 h-5" />
-            </div>
+            <img 
+              src="https://appdesignproyectos.com/carrillogamboa.png" 
+              alt="Logo" 
+              className="h-10 w-auto"
+              referrerPolicy="no-referrer"
+            />
             <span className="font-serif text-sm font-bold tracking-tighter uppercase">Admin Panel</span>
           </div>
           <button 
@@ -692,12 +695,12 @@ const Navbar = () => {
     <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-navy/95 backdrop-blur-md py-3 shadow-xl' : 'bg-transparent py-6'}`}>
       <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 md:w-10 md:h-10 gold-gradient rounded-sm flex items-center justify-center">
-            <Scale className="text-navy w-4 h-4 md:w-6 md:h-6" />
-          </div>
-          <span className={`font-serif text-sm md:text-xl font-bold tracking-tighter text-white`}>
-            CARRILLO GAMBOA <span className="text-gold">& ASOCIADOS</span>
-          </span>
+          <img 
+            src="https://appdesignproyectos.com/carrillogamboa.png" 
+            alt="Logo" 
+            className="h-12 md:h-16 w-auto"
+            referrerPolicy="no-referrer"
+          />
         </div>
 
         {/* Desktop Nav */}
@@ -1509,12 +1512,12 @@ const Footer = () => {
         <div className="grid md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-2">
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 gold-gradient rounded-sm flex items-center justify-center">
-                <Scale className="text-navy w-5 h-5" />
-              </div>
-              <span className="font-serif text-sm md:text-xl font-bold tracking-tighter">
-                CARRILLO GAMBOA <span className="text-gold">& ASOCIADOS</span>
-              </span>
+              <img 
+                src="https://appdesignproyectos.com/carrillogamboa.png" 
+                alt="Logo" 
+                className="h-16 w-auto"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <p className="text-white/50 max-w-md leading-relaxed mb-8">
               Firma líder en servicios integrales de consultoría fiscal, legal y administrativa. Comprometidos con la excelencia y la protección del patrimonio de nuestros clientes.
