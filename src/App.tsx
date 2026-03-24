@@ -34,6 +34,7 @@ import {
   Download
 } from 'lucide-react';
 import { analyzeTaxRisk, RiskAnalysis, analyzeBookingRequest, BookingAnalysis, getChatbotResponse } from './services/geminiService';
+import { supabase } from './lib/supabase';
 
 // --- Components ---
 
@@ -223,53 +224,71 @@ const PWAInstallPrompt = () => {
 const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [stats, setStats] = useState([
+    { label: 'Ingresos Mensuales', value: '$0', change: '0%', icon: <DollarSign className="w-5 h-5" /> },
+    { label: 'Nuevos Clientes', value: '0', change: '0%', icon: <Users className="w-5 h-5" /> },
+    { label: 'Citas Pendientes', value: '0', change: '0', icon: <Calendar className="w-5 h-5" /> },
+    { label: 'Tasa de Conversión', value: '0%', change: '0%', icon: <TrendingUp className="w-5 h-5" /> },
+  ]);
 
-  const stats = [
-    { label: 'Ingresos Mensuales', value: '$425,000', change: '+12.5%', icon: <DollarSign className="w-5 h-5" /> },
-    { label: 'Nuevos Clientes', value: '48', change: '+8.2%', icon: <Users className="w-5 h-5" /> },
-    { label: 'Citas Pendientes', value: '12', change: '-2', icon: <Calendar className="w-5 h-5" /> },
-    { label: 'Tasa de Conversión', value: '24%', change: '+3.1%', icon: <TrendingUp className="w-5 h-5" /> },
-  ];
+  const [recentRequests, setRecentRequests] = useState<any[]>([]);
+  const [clientMessages, setClientMessages] = useState<any[]>([]);
+  const [allClients, setAllClients] = useState<any[]>([]);
+  const [incomeTransactions, setIncomeTransactions] = useState<any[]>([]);
+  const [fullAgenda, setFullAgenda] = useState<any[]>([]);
 
-  const recentRequests = [
-    { id: 1, name: 'Juan Pérez', service: 'Asesoría Fiscal', date: '2026-03-21', status: 'Pendiente', priority: 'Alta' },
-    { id: 2, name: 'Empresa ABC', service: 'Auditoría', date: '2026-03-20', status: 'En Proceso', priority: 'Normal' },
-    { id: 3, name: 'María García', service: 'Defensa Legal', date: '2026-03-20', status: 'Completado', priority: 'Urgente' },
-    { id: 4, name: 'Roberto López', service: 'Contabilidad', date: '2026-03-19', status: 'Pendiente', priority: 'Normal' },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      // Fetch Clients
+      const { data: clients } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
+      if (clients) setAllClients(clients);
 
-  const clientMessages = [
-    { id: 1, sender: 'Carlos Ruiz', subject: 'Duda sobre IVA', message: '¿Cómo afecta la nueva reforma al IVA acreditable?', date: 'Hace 2 horas' },
-    { id: 2, sender: 'Elena Torres', subject: 'Cita Urgente', message: 'Necesito revisar mi declaración anual lo antes posible.', date: 'Hace 5 horas' },
-    { id: 3, sender: 'Sistemas Globales', subject: 'Contrato Laboral', message: 'Requerimos revisión de 5 contratos de outsourcing.', date: 'Ayer' },
-    { id: 4, sender: 'Lucía Méndez', subject: 'Auditoría Externa', message: '¿Cuáles son los requisitos para la auditoría de este año?', date: 'Ayer' },
-    { id: 5, sender: 'Inmobiliaria CDMX', subject: 'Pago de Impuestos', message: 'Confirmación de recepción de documentos para el pago trimestral.', date: 'Hace 2 días' },
-  ];
+      // Fetch Bookings
+      const { data: bookings } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
+      if (bookings) setRecentRequests(bookings.map(b => ({
+        id: b.id,
+        name: b.name,
+        service: b.service,
+        date: b.date,
+        status: 'Pendiente',
+        priority: b.priority
+      })));
 
-  const allClients = [
-    { id: 1, name: 'Juan Pérez', email: 'juan.perez@email.com', company: 'Independiente', status: 'Activo', lastService: 'Asesoría Fiscal' },
-    { id: 2, name: 'Empresa ABC', email: 'contacto@abc.com', company: 'ABC Corp', status: 'Activo', lastService: 'Auditoría' },
-    { id: 3, name: 'María García', email: 'm.garcia@email.com', company: 'García & Co', status: 'Inactivo', lastService: 'Defensa Legal' },
-    { id: 4, name: 'Roberto López', email: 'roberto@lopez.mx', company: 'López Consultores', status: 'Activo', lastService: 'Contabilidad' },
-    { id: 5, name: 'Sistemas Globales', email: 'admin@sistemas.com', company: 'Sistemas Globales S.A.', status: 'Activo', lastService: 'Revisión Contratos' },
-    { id: 6, name: 'Elena Torres', email: 'elena.t@email.com', company: 'Independiente', status: 'Pendiente', lastService: 'Declaración Anual' },
-  ];
+      // Fetch Messages
+      const { data: messages } = await supabase.from('messages').select('*').order('created_at', { ascending: false });
+      if (messages) setClientMessages(messages.map(m => ({
+        id: m.id,
+        sender: m.sender_name,
+        subject: m.subject,
+        message: m.message,
+        date: new Date(m.created_at).toLocaleDateString()
+      })));
 
-  const incomeTransactions = [
-    { id: 1, client: 'Empresa ABC', amount: '$45,000', date: '2026-03-21', concept: 'Auditoría Anual', status: 'Pagado' },
-    { id: 2, client: 'Juan Pérez', amount: '$8,500', date: '2026-03-20', concept: 'Asesoría Fiscal Mensual', status: 'Pagado' },
-    { id: 3, client: 'Sistemas Globales', amount: '$12,000', date: '2026-03-19', concept: 'Revisión de Contratos', status: 'Pendiente' },
-    { id: 4, client: 'Roberto López', amount: '$15,000', date: '2026-03-18', concept: 'Contabilidad Trimestral', status: 'Pagado' },
-    { id: 5, client: 'Inmobiliaria CDMX', amount: '$22,500', date: '2026-03-17', concept: 'Estrategia Fiscal', status: 'Pagado' },
-  ];
+      // Fetch Transactions
+      const { data: transactions } = await supabase.from('transactions').select('*').order('date', { ascending: false });
+      if (transactions) {
+        setIncomeTransactions(transactions.map(t => ({
+          ...t,
+          amount: `$${t.amount.toLocaleString()}`
+        })));
+        
+        // Calculate stats
+        const totalIncome = transactions.reduce((acc, t) => acc + Number(t.amount), 0);
+        setStats(prev => [
+          { ...prev[0], value: `$${totalIncome.toLocaleString()}` },
+          { ...prev[1], value: clients?.length.toString() || '0' },
+          { ...prev[2], value: bookings?.length.toString() || '0' },
+          { ...prev[3], value: '24%' }, // Mock conversion rate
+        ]);
+      }
 
-  const fullAgenda = [
-    { time: '09:00 AM', title: 'Reunión Fiscal - Juan P.', type: 'Presencial', location: 'Oficina Central' },
-    { time: '11:30 AM', title: 'Auditoría Empresa ABC', type: 'Virtual', location: 'Zoom' },
-    { time: '01:00 PM', title: 'Almuerzo de Negocios - Cliente VIP', type: 'Presencial', location: 'Restaurante Lomas' },
-    { time: '04:00 PM', title: 'Defensa Legal - María G.', type: 'Presencial', location: 'Oficina Central' },
-    { time: '06:00 PM', title: 'Revisión de Cierre Mensual', type: 'Interna', location: 'Sala de Juntas' },
-  ];
+      // Fetch Agenda
+      const { data: agenda } = await supabase.from('agenda_events').select('*').order('created_at', { ascending: true });
+      if (agenda) setFullAgenda(agenda);
+    };
+
+    fetchData();
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-slate-100 flex relative overflow-hidden">
@@ -889,12 +908,31 @@ const BookingSystem = () => {
     setStep(step + 1);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const { error } = await supabase.from('bookings').insert([{
+        service: formData.service,
+        description: formData.description,
+        date: formData.date,
+        time: formData.time,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        priority: aiAnalysis?.priority,
+        suggested_specialist: aiAnalysis?.suggestedSpecialist,
+        estimated_duration: aiAnalysis?.estimatedDuration,
+        preliminary_note: aiAnalysis?.preliminaryNote
+      }]);
+
+      if (error) throw error;
       setIsConfirmed(true);
-    }, 1500);
+    } catch (error) {
+      console.error('Error saving booking:', error);
+      alert('Error al agendar la cita. Por favor intente de nuevo.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (isConfirmed) {
@@ -1425,9 +1463,25 @@ const AIScanner = () => {
 const Contact = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    try {
+      const { error } = await supabase.from('messages').insert([{
+        sender_name: `${formData.get('nombre')} ${formData.get('apellido')}`,
+        sender_email: formData.get('email'),
+        subject: formData.get('asunto'),
+        message: formData.get('mensaje')
+      }]);
+
+      if (error) throw error;
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Error saving message:', error);
+      alert('Error al enviar el mensaje. Por favor intente de nuevo.');
+    }
   };
 
   return (
@@ -1498,20 +1552,20 @@ const Contact = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Nombre</label>
-                    <input required type="text" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
+                    <input required name="nombre" type="text" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Apellido</label>
-                    <input required type="text" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
+                    <input required name="apellido" type="text" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Email</label>
-                  <input required type="email" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
+                  <input required name="email" type="email" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Asunto</label>
-                  <select className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold">
+                  <select name="asunto" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold">
                     <option>Asesoría Fiscal</option>
                     <option>Legal / Litigio</option>
                     <option>Contabilidad</option>
@@ -1520,7 +1574,7 @@ const Contact = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Mensaje</label>
-                  <textarea required className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold min-h-[120px]" />
+                  <textarea required name="mensaje" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold min-h-[120px]" />
                 </div>
                 <button type="submit" className="w-full navy-gradient text-white py-4 rounded-lg font-bold uppercase tracking-widest hover:brightness-125 transition-all">
                   Enviar Mensaje
