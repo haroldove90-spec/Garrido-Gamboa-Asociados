@@ -673,14 +673,7 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
 };
 
 const Navbar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const navLinks = [
     { name: 'Inicio', href: '#home' },
@@ -692,7 +685,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-navy/95 backdrop-blur-md py-3 shadow-xl' : 'bg-transparent py-6'}`}>
+    <nav className={`fixed w-full z-50 transition-all duration-300 bg-navy py-3 shadow-xl`}>
       <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <img 
@@ -787,7 +780,7 @@ const Hero = () => {
   }, []);
 
   return (
-    <section id="home" className="relative h-screen flex items-center overflow-hidden">
+    <section id="home" className="relative h-[calc(100vh-88px)] mt-[88px] flex items-center overflow-hidden">
       <AnimatePresence mode="wait">
         <motion.div 
           key={currentSlide}
