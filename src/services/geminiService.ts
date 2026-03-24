@@ -4,8 +4,10 @@ let aiInstance: GoogleGenAI | null = null;
 
 function getAI(): GoogleGenAI {
   if (!aiInstance) {
-    // Vite replaces process.env.GEMINI_API_KEY with the actual value during build
-    const apiKey = process.env.GEMINI_API_KEY;
+    // In Vite, environment variables are typically accessed via import.meta.env
+    // but the platform instructions specify process.env.GEMINI_API_KEY.
+    // We'll try to access it safely.
+    const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY;
     
     if (!apiKey || apiKey === "dummy-key") {
       console.warn("GEMINI_API_KEY no está configurada o es inválida. Las funciones de IA no estarán disponibles.");

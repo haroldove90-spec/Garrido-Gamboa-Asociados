@@ -91,6 +91,7 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
       setShowRegistration(false);
     } else {
       setMessages([{ text: 'Hola, soy el asistente virtual de Carrillo Gamboa & Asociados. Para brindarte una mejor atención, por favor indícanos tu nombre y teléfono.', sender: 'bot' }]);
+      setShowRegistration(true);
     }
   }, [role]);
 
@@ -107,6 +108,7 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
         .single();
 
       if (error) throw error;
+      if (!data) throw new Error('No data returned from chat session creation');
 
       setUserInfo(regData);
       setSessionId(data.id);
@@ -114,9 +116,10 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
       setMessages(prev => [...prev, { text: `Gracias ${regData.name}. ¿En qué podemos ayudarte hoy?`, sender: 'bot' }]);
     } catch (err) {
       console.error('Error creating chat session:', err);
-      // Fallback for demo if table doesn't exist
+      // Fallback for demo if table doesn't exist or other error
       setUserInfo(regData);
       setShowRegistration(false);
+      setMessages(prev => [...prev, { text: `Gracias ${regData.name}. (Modo offline) ¿En qué podemos ayudarte hoy?`, sender: 'bot' }]);
     } finally {
       setLoading(false);
     }
@@ -129,29 +132,38 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
     setMessages(prev => [...prev, { text: userMsg, sender: 'user' }]);
     setLoading(true);
 
-    // Save user message to DB
+    // Save user message to DB (optional, don't crash if fails)
     if (sessionId) {
-      await supabase.from('chat_messages').insert([{
-        session_id: sessionId,
-        text: userMsg,
-        sender: 'user'
-      }]);
+      try {
+        await supabase.from('chat_messages').insert([{
+          session_id: sessionId,
+          text: userMsg,
+          sender: 'user'
+        }]);
+      } catch (dbErr) {
+        console.warn('Could not save user message to DB:', dbErr);
+      }
     }
 
     try {
       const response = await getChatbotResponse(userMsg, role);
       setMessages(prev => [...prev, { text: response, sender: 'bot' }]);
       
-      // Save bot message to DB
+      // Save bot message to DB (optional, don't crash if fails)
       if (sessionId) {
-        await supabase.from('chat_messages').insert([{
-          session_id: sessionId,
-          text: response,
-          sender: 'bot'
-        }]);
+        try {
+          await supabase.from('chat_messages').insert([{
+            session_id: sessionId,
+            text: response,
+            sender: 'bot'
+          }]);
+        } catch (dbErr) {
+          console.warn('Could not save bot message to DB:', dbErr);
+        }
       }
     } catch (err) {
-      setMessages(prev => [...prev, { text: 'Lo siento, hubo un error.', sender: 'bot' }]);
+      console.error('Chatbot response error:', err);
+      setMessages(prev => [...prev, { text: 'Lo siento, hubo un error al procesar tu mensaje.', sender: 'bot' }]);
     } finally {
       setLoading(false);
     }
@@ -374,56 +386,60 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch Clients
-      const { data: clients } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
-      if (clients) setAllClients(clients);
+      try {
+        // Fetch Clients
+        const { data: clients } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
+        if (clients) setAllClients(clients);
 
-      // Fetch Bookings
-      const { data: bookings } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
-      if (bookings && Array.isArray(bookings)) setRecentRequests(bookings.map(b => ({
-        id: b.id,
-        name: b.name || 'Sin nombre',
-        service: b.service || 'General',
-        date: b.date || 'Pendiente',
-        status: 'Pendiente',
-        priority: b.priority || 'Media'
-      })));
-
-      // Fetch Messages
-      const { data: messages } = await supabase.from('messages').select('*').order('created_at', { ascending: false });
-      if (messages && Array.isArray(messages)) setClientMessages(messages.map(m => ({
-        id: m.id,
-        sender: m.sender_name || 'Anónimo',
-        subject: m.subject || 'Sin asunto',
-        message: m.message || '',
-        date: m.created_at ? new Date(m.created_at).toLocaleDateString() : 'N/A'
-      })));
-
-      // Fetch Chat Sessions
-      const { data: chats } = await supabase.from('chat_sessions').select('*').order('created_at', { ascending: false });
-      if (chats) setChatSessions(chats);
-
-      // Fetch Transactions
-      const { data: transactions } = await supabase.from('transactions').select('*').order('date', { ascending: false });
-      if (transactions && Array.isArray(transactions)) {
-        setIncomeTransactions(transactions.map(t => ({
-          ...t,
-          amount: `$${(t.amount || 0).toLocaleString()}`
+        // Fetch Bookings
+        const { data: bookings } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
+        if (bookings && Array.isArray(bookings)) setRecentRequests(bookings.map(b => ({
+          id: b.id,
+          name: b.name || 'Sin nombre',
+          service: b.service || 'General',
+          date: b.date || 'Pendiente',
+          status: 'Pendiente',
+          priority: b.priority || 'Media'
         })));
-        
-        // Calculate stats
-        const totalIncome = transactions.reduce((acc, t) => acc + Number(t.amount || 0), 0);
-        setStats(prev => [
-          { ...prev[0], value: `$${totalIncome.toLocaleString()}` },
-          { ...prev[1], value: clients?.length.toString() || '0' },
-          { ...prev[2], value: bookings?.length.toString() || '0' },
-          { ...prev[3], value: '24%' }, // Mock conversion rate
-        ]);
-      }
 
-      // Fetch Agenda
-      const { data: agenda } = await supabase.from('agenda_events').select('*').order('created_at', { ascending: true });
-      if (agenda) setFullAgenda(agenda);
+        // Fetch Messages
+        const { data: messages } = await supabase.from('messages').select('*').order('created_at', { ascending: false });
+        if (messages && Array.isArray(messages)) setClientMessages(messages.map(m => ({
+          id: m.id,
+          sender: m.sender_name || 'Anónimo',
+          subject: m.subject || 'Sin asunto',
+          message: m.message || '',
+          date: m.created_at ? new Date(m.created_at).toLocaleDateString() : 'N/A'
+        })));
+
+        // Fetch Chat Sessions
+        const { data: chats } = await supabase.from('chat_sessions').select('*').order('created_at', { ascending: false });
+        if (chats) setChatSessions(chats);
+
+        // Fetch Transactions
+        const { data: transactions } = await supabase.from('transactions').select('*').order('date', { ascending: false });
+        if (transactions && Array.isArray(transactions)) {
+          setIncomeTransactions(transactions.map(t => ({
+            ...t,
+            amount: `$${(t.amount || 0).toLocaleString()}`
+          })));
+          
+          // Calculate stats
+          const totalIncome = transactions.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+          setStats(prev => [
+            { ...prev[0], value: `$${totalIncome.toLocaleString()}` },
+            { ...prev[1], value: clients?.length.toString() || '0' },
+            { ...prev[2], value: bookings?.length.toString() || '0' },
+            { ...prev[3], value: '24%' }, // Mock conversion rate
+          ]);
+        }
+
+        // Fetch Agenda
+        const { data: agenda } = await supabase.from('agenda_events').select('*').order('created_at', { ascending: true });
+        if (agenda) setFullAgenda(agenda);
+      } catch (err) {
+        console.error('Error fetching admin data:', err);
+      }
     };
 
     fetchData();
@@ -907,7 +923,6 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
           )}
         </main>
       </div>
-      <Chatbot role="admin" />
     </div>
   );
 };
@@ -1904,7 +1919,6 @@ function AppContent() {
       {role === 'admin' ? (
         <div className="min-h-screen bg-slate-50">
           <AdminDashboard onLogout={() => setRole('client')} />
-          <PWAInstallPrompt />
           {/* Floating Role Switcher for Admin */}
           <div className="fixed top-24 right-0 z-[60] flex flex-col items-end pointer-events-none">
             <motion.div 
@@ -1926,7 +1940,6 @@ function AppContent() {
               </button>
             </motion.div>
           </div>
-          <Chatbot role="admin" />
         </div>
       ) : (
         <div className="min-h-screen overflow-x-hidden bg-slate-50">
@@ -1972,10 +1985,10 @@ function AppContent() {
           <AIScanner />
           <Contact />
           <Footer />
-          <Chatbot role="client" />
-          <PWAInstallPrompt />
         </div>
       )}
+      <Chatbot role={role} />
+      <PWAInstallPrompt />
     </div>
   );
 }
