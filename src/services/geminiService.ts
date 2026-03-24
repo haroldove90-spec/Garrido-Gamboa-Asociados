@@ -5,7 +5,12 @@ let aiInstance: GoogleGenAI | null = null;
 function getAI(): GoogleGenAI {
   if (!aiInstance) {
     // Usamos una forma segura de acceder a process.env para evitar errores si process no está definido
-    const apiKey = typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined;
+    let apiKey: string | undefined;
+    try {
+      apiKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : undefined;
+    } catch (e) {
+      console.warn("Error al acceder a process.env:", e);
+    }
     if (!apiKey) {
       console.warn("GEMINI_API_KEY no está configurada. Las funciones de IA no estarán disponibles.");
     }

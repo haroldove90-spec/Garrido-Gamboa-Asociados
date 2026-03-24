@@ -707,7 +707,10 @@ const Navbar = () => {
               {link.name}
             </a>
           ))}
-          <button className="gold-gradient text-navy px-6 py-2 rounded-sm font-bold text-xs uppercase tracking-widest hover:brightness-110 transition-all">
+          <button 
+            onClick={() => document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' })}
+            className="gold-gradient text-navy px-6 py-2 rounded-sm font-bold text-xs uppercase tracking-widest hover:brightness-110 transition-all"
+          >
             Consulta Gratuita
           </button>
         </div>
@@ -738,7 +741,13 @@ const Navbar = () => {
                   {link.name}
                 </a>
               ))}
-              <button className="gold-gradient text-navy w-full py-3 rounded-sm font-bold mt-4">
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="gold-gradient text-navy w-full py-3 rounded-sm font-bold mt-4"
+              >
                 Consulta Gratuita
               </button>
             </div>
@@ -1414,6 +1423,13 @@ const AIScanner = () => {
 };
 
 const Contact = () => {
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitted(true);
+  };
+
   return (
     <section id="contact" className="py-24 bg-white">
       <div className="max-w-7xl mx-auto px-6">
@@ -1459,38 +1475,58 @@ const Contact = () => {
           </div>
 
           <div className="bg-slate-50 p-10 rounded-xl border border-slate-100">
-            <form className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Nombre</label>
-                  <input type="text" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
+            {isSubmitted ? (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="h-full flex flex-col items-center justify-center text-center py-12"
+              >
+                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
+                  <CheckCircle className="w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-serif text-navy mb-2">¡Mensaje Enviado!</h3>
+                <p className="text-slate-500 mb-8">Gracias por contactarnos. Un especialista revisará tu mensaje y te responderá pronto.</p>
+                <button 
+                  onClick={() => setIsSubmitted(false)}
+                  className="text-gold font-bold text-xs uppercase tracking-widest hover:underline"
+                >
+                  Enviar otro mensaje
+                </button>
+              </motion.div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Nombre</label>
+                    <input required type="text" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Apellido</label>
+                    <input required type="text" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Apellido</label>
-                  <input type="text" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
+                  <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Email</label>
+                  <input required type="email" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Email</label>
-                <input type="email" className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Asunto</label>
-                <select className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold">
-                  <option>Asesoría Fiscal</option>
-                  <option>Legal / Litigio</option>
-                  <option>Contabilidad</option>
-                  <option>Otro</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Mensaje</label>
-                <textarea className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold min-h-[120px]" />
-              </div>
-              <button className="w-full navy-gradient text-white py-4 rounded-lg font-bold uppercase tracking-widest hover:brightness-125 transition-all">
-                Enviar Mensaje
-              </button>
-            </form>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Asunto</label>
+                  <select className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold">
+                    <option>Asesoría Fiscal</option>
+                    <option>Legal / Litigio</option>
+                    <option>Contabilidad</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-navy/60">Mensaje</label>
+                  <textarea required className="w-full bg-white border border-slate-200 rounded-lg p-3 focus:outline-none focus:border-gold min-h-[120px]" />
+                </div>
+                <button type="submit" className="w-full navy-gradient text-white py-4 rounded-lg font-bold uppercase tracking-widest hover:brightness-125 transition-all">
+                  Enviar Mensaje
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>
