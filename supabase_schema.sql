@@ -59,12 +59,31 @@ CREATE TABLE IF NOT EXISTS agenda_events (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 6. Chat Sessions Table
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 7. Chat Messages Table
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  session_id UUID REFERENCES chat_sessions(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  sender TEXT NOT NULL, -- 'user' or 'bot'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agenda_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 
 -- Policies (For demo purposes, allowing all access. In production, restrict these!)
 CREATE POLICY "Allow all access to clients" ON clients FOR ALL USING (true) WITH CHECK (true);
@@ -72,6 +91,8 @@ CREATE POLICY "Allow all access to bookings" ON bookings FOR ALL USING (true) WI
 CREATE POLICY "Allow all access to messages" ON messages FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to transactions" ON transactions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to agenda_events" ON agenda_events FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to chat_sessions" ON chat_sessions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to chat_messages" ON chat_messages FOR ALL USING (true) WITH CHECK (true);
 
 -- Insert some initial data for the demo
 INSERT INTO clients (name, email, company, status, last_service) VALUES

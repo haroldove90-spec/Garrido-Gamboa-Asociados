@@ -4,15 +4,11 @@ let aiInstance: GoogleGenAI | null = null;
 
 function getAI(): GoogleGenAI {
   if (!aiInstance) {
-    // Usamos una forma segura de acceder a process.env para evitar errores si process no está definido
-    let apiKey: string | undefined;
-    try {
-      apiKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : undefined;
-    } catch (e) {
-      console.warn("Error al acceder a process.env:", e);
-    }
-    if (!apiKey) {
-      console.warn("GEMINI_API_KEY no está configurada. Las funciones de IA no estarán disponibles.");
+    // Vite replaces process.env.GEMINI_API_KEY with the actual value during build
+    const apiKey = process.env.GEMINI_API_KEY;
+    
+    if (!apiKey || apiKey === "dummy-key") {
+      console.warn("GEMINI_API_KEY no está configurada o es inválida. Las funciones de IA no estarán disponibles.");
     }
     aiInstance = new GoogleGenAI({ apiKey: apiKey || "dummy-key" });
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Scale, 
@@ -36,15 +36,91 @@ import {
 import { analyzeTaxRisk, RiskAnalysis, analyzeBookingRequest, BookingAnalysis, getChatbotResponse } from './services/geminiService';
 import { supabase } from './lib/supabase';
 
+// --- Error Boundary ---
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-6 text-center">
+          <AlertTriangle className="text-gold w-16 h-16 mb-4" />
+          <h1 className="text-2xl font-serif text-white mb-2">Algo salió mal</h1>
+          <p className="text-white/60 max-w-md">La aplicación encontró un problema inesperado. Por favor, intenta recargar la página.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-8 gold-gradient text-navy px-8 py-3 rounded-xl font-bold uppercase tracking-widest hover:scale-105 transition-all"
+          >
+            Recargar Aplicación
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // --- Components ---
 
 const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<{ text: string, sender: 'user' | 'bot' }[]>([
-    { text: role === 'admin' ? 'Bienvenido, Administrador. ¿En qué puedo apoyarte con la gestión hoy?' : 'Hola, soy el asistente virtual de Carrillo Gamboa & Asociados. ¿En qué puedo ayudarte?', sender: 'bot' }
-  ]);
+  const [userInfo, setUserInfo] = useState<{ name: string, phone: string } | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [showRegistration, setShowRegistration] = useState(role === 'client');
+  const [regData, setRegData] = useState({ name: '', phone: '' });
+  
+  const [messages, setMessages] = useState<{ text: string, sender: 'user' | 'bot' }[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (role === 'admin') {
+      setMessages([{ text: 'Bienvenido, Administrador. ¿En qué puedo apoyarte con la gestión hoy?', sender: 'bot' }]);
+      setShowRegistration(false);
+    } else {
+      setMessages([{ text: 'Hola, soy el asistente virtual de Carrillo Gamboa & Asociados. Para brindarte una mejor atención, por favor indícanos tu nombre y teléfono.', sender: 'bot' }]);
+    }
+  }, [role]);
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regData.name || !regData.phone) return;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .insert([{ name: regData.name, phone: regData.phone }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setUserInfo(regData);
+      setSessionId(data.id);
+      setShowRegistration(false);
+      setMessages(prev => [...prev, { text: `Gracias ${regData.name}. ¿En qué podemos ayudarte hoy?`, sender: 'bot' }]);
+    } catch (err) {
+      console.error('Error creating chat session:', err);
+      // Fallback for demo if table doesn't exist
+      setUserInfo(regData);
+      setShowRegistration(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -53,9 +129,27 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
     setMessages(prev => [...prev, { text: userMsg, sender: 'user' }]);
     setLoading(true);
 
+    // Save user message to DB
+    if (sessionId) {
+      await supabase.from('chat_messages').insert([{
+        session_id: sessionId,
+        text: userMsg,
+        sender: 'user'
+      }]);
+    }
+
     try {
       const response = await getChatbotResponse(userMsg, role);
       setMessages(prev => [...prev, { text: response, sender: 'bot' }]);
+      
+      // Save bot message to DB
+      if (sessionId) {
+        await supabase.from('chat_messages').insert([{
+          session_id: sessionId,
+          text: response,
+          sender: 'bot'
+        }]);
+      }
     } catch (err) {
       setMessages(prev => [...prev, { text: 'Lo siento, hubo un error.', sender: 'bot' }]);
     } finally {
@@ -94,7 +188,43 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
                   </div>
                 </div>
               ))}
-              {loading && (
+              
+              {showRegistration && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white p-4 rounded-xl border border-gold/30 shadow-sm"
+                >
+                  <p className="text-xs font-bold text-navy mb-3 uppercase tracking-widest">Registro de Atención</p>
+                  <form onSubmit={handleRegister} className="space-y-3">
+                    <input 
+                      type="text" 
+                      placeholder="Nombre completo"
+                      required
+                      value={regData.name}
+                      onChange={e => setRegData({...regData, name: e.target.value})}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-gold outline-none"
+                    />
+                    <input 
+                      type="tel" 
+                      placeholder="Teléfono"
+                      required
+                      value={regData.phone}
+                      onChange={e => setRegData({...regData, phone: e.target.value})}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-gold outline-none"
+                    />
+                    <button 
+                      type="submit"
+                      disabled={loading}
+                      className="w-full gold-gradient text-navy py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all"
+                    >
+                      {loading ? 'Iniciando...' : 'Comenzar Chat'}
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+
+              {loading && !showRegistration && (
                 <div className="flex justify-start">
                   <div className="bg-white p-3 rounded-2xl shadow-sm rounded-tl-none border border-slate-100 flex gap-1">
                     <div className="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" />
@@ -105,23 +235,25 @@ const Chatbot = ({ role }: { role: 'admin' | 'client' }) => {
               )}
             </div>
 
-            <div className="p-4 bg-white border-t border-slate-100 flex gap-2">
-              <input 
-                type="text" 
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Escribe tu mensaje..."
-                className="flex-1 bg-slate-100 border-none rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-gold outline-none"
-              />
-              <button 
-                onClick={handleSend}
-                disabled={loading || !input.trim()}
-                className="w-10 h-10 gold-gradient rounded-full flex items-center justify-center text-navy hover:scale-110 transition-transform disabled:opacity-50"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
+            {!showRegistration && (
+              <div className="p-4 bg-white border-t border-slate-100 flex gap-2">
+                <input 
+                  type="text" 
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                  placeholder="Escribe tu mensaje..."
+                  className="flex-1 bg-slate-100 border-none rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-gold outline-none"
+                />
+                <button 
+                  onClick={handleSend}
+                  disabled={loading || !input.trim()}
+                  className="w-10 h-10 gold-gradient rounded-full flex items-center justify-center text-navy hover:scale-110 transition-transform disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -233,6 +365,9 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   const [recentRequests, setRecentRequests] = useState<any[]>([]);
   const [clientMessages, setClientMessages] = useState<any[]>([]);
+  const [chatSessions, setChatSessions] = useState<any[]>([]);
+  const [selectedChat, setSelectedChat] = useState<any | null>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [allClients, setAllClients] = useState<any[]>([]);
   const [incomeTransactions, setIncomeTransactions] = useState<any[]>([]);
   const [fullAgenda, setFullAgenda] = useState<any[]>([]);
@@ -245,35 +380,39 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
       // Fetch Bookings
       const { data: bookings } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
-      if (bookings) setRecentRequests(bookings.map(b => ({
+      if (bookings && Array.isArray(bookings)) setRecentRequests(bookings.map(b => ({
         id: b.id,
-        name: b.name,
-        service: b.service,
-        date: b.date,
+        name: b.name || 'Sin nombre',
+        service: b.service || 'General',
+        date: b.date || 'Pendiente',
         status: 'Pendiente',
-        priority: b.priority
+        priority: b.priority || 'Media'
       })));
 
       // Fetch Messages
       const { data: messages } = await supabase.from('messages').select('*').order('created_at', { ascending: false });
-      if (messages) setClientMessages(messages.map(m => ({
+      if (messages && Array.isArray(messages)) setClientMessages(messages.map(m => ({
         id: m.id,
-        sender: m.sender_name,
-        subject: m.subject,
-        message: m.message,
-        date: new Date(m.created_at).toLocaleDateString()
+        sender: m.sender_name || 'Anónimo',
+        subject: m.subject || 'Sin asunto',
+        message: m.message || '',
+        date: m.created_at ? new Date(m.created_at).toLocaleDateString() : 'N/A'
       })));
+
+      // Fetch Chat Sessions
+      const { data: chats } = await supabase.from('chat_sessions').select('*').order('created_at', { ascending: false });
+      if (chats) setChatSessions(chats);
 
       // Fetch Transactions
       const { data: transactions } = await supabase.from('transactions').select('*').order('date', { ascending: false });
-      if (transactions) {
+      if (transactions && Array.isArray(transactions)) {
         setIncomeTransactions(transactions.map(t => ({
           ...t,
-          amount: `$${t.amount.toLocaleString()}`
+          amount: `$${(t.amount || 0).toLocaleString()}`
         })));
         
         // Calculate stats
-        const totalIncome = transactions.reduce((acc, t) => acc + Number(t.amount), 0);
+        const totalIncome = transactions.reduce((acc, t) => acc + Number(t.amount || 0), 0);
         setStats(prev => [
           { ...prev[0], value: `$${totalIncome.toLocaleString()}` },
           { ...prev[1], value: clients?.length.toString() || '0' },
@@ -289,6 +428,20 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
     fetchData();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (selectedChat) {
+      const fetchChatMessages = async () => {
+        const { data } = await supabase
+          .from('chat_messages')
+          .select('*')
+          .eq('session_id', selectedChat.id)
+          .order('created_at', { ascending: true });
+        if (data) setChatMessages(data);
+      };
+      fetchChatMessages();
+    }
+  }, [selectedChat]);
 
   return (
     <div className="min-h-screen bg-slate-100 flex relative overflow-hidden">
@@ -331,6 +484,7 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
             { id: 'clients', label: 'Clientes', icon: <Users className="w-4 h-4" /> },
             { id: 'agenda', label: 'Agenda', icon: <Calendar className="w-4 h-4" /> },
             { id: 'messages', label: 'Mensajes', icon: <MessageSquare className="w-4 h-4" /> },
+            { id: 'chats', label: 'Chats IA', icon: <MessageCircle className="w-4 h-4" /> },
             { id: 'income', label: 'Ingresos', icon: <DollarSign className="w-4 h-4" /> },
             { id: 'settings', label: 'Configuración', icon: <Settings className="w-4 h-4" /> },
           ].map((item) => (
@@ -569,6 +723,73 @@ const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
                   </div>
                   <button className="w-full mt-8 gold-gradient text-navy py-3 rounded-xl text-xs font-bold uppercase tracking-widest">Agendar Nueva</button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'chats' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-12rem)]">
+              <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                  <h4 className="font-serif text-lg text-navy">Sesiones de Chat</h4>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {chatSessions.length > 0 ? chatSessions.map((chat) => (
+                    <button 
+                      key={chat.id} 
+                      onClick={() => setSelectedChat(chat)}
+                      className={`w-full p-6 text-left border-b border-slate-50 hover:bg-slate-50 transition-colors group ${selectedChat?.id === chat.id ? 'bg-slate-50 border-l-4 border-l-gold' : ''}`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <p className="font-bold text-navy text-sm">{chat.name}</p>
+                        <span className="text-[10px] text-slate-400">{new Date(chat.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-xs text-gold font-bold mb-1">{chat.phone}</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-widest">ID: {chat.id.slice(0,8)}</p>
+                    </button>
+                  )) : (
+                    <div className="p-12 text-center text-slate-400">
+                      <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                      <p className="text-sm">No hay sesiones de chat registradas.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+                {selectedChat ? (
+                  <>
+                    <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                      <div>
+                        <h4 className="font-serif text-lg text-navy">{selectedChat.name}</h4>
+                        <p className="text-xs text-slate-500">{selectedChat.phone}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="p-2 text-slate-400 hover:text-gold transition-colors"><Phone className="w-4 h-4" /></button>
+                        <button className="p-2 text-slate-400 hover:text-gold transition-colors"><Mail className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30">
+                      {chatMessages.map((msg, i) => (
+                        <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${msg.sender === 'user' ? 'bg-navy text-white rounded-tr-none' : 'bg-white text-slate-700 shadow-sm rounded-tl-none border border-slate-100'}`}>
+                            {msg.text}
+                            <p className={`text-[8px] mt-1 ${msg.sender === 'user' ? 'text-white/50' : 'text-slate-400'}`}>
+                              {new Date(msg.created_at).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-12 text-center">
+                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                      <MessageCircle className="w-8 h-8 opacity-20" />
+                    </div>
+                    <h5 className="text-navy font-serif text-lg mb-2">Selecciona un chat</h5>
+                    <p className="text-sm max-w-xs">Haz clic en una sesión de la izquierda para ver el historial completo de la conversación.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1648,6 +1869,14 @@ const Footer = () => {
 // --- Main App ---
 
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
+}
+
+function AppContent() {
   const [role, setRole] = useState<'admin' | 'client'>('client');
   const [isAuthReady, setIsAuthReady] = useState(false);
 
@@ -1670,9 +1899,9 @@ export default function App() {
     );
   }
 
-  try {
-    if (role === 'admin') {
-      return (
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {role === 'admin' ? (
         <div className="min-h-screen bg-slate-50">
           <AdminDashboard onLogout={() => setRole('client')} />
           <PWAInstallPrompt />
@@ -1699,71 +1928,54 @@ export default function App() {
           </div>
           <Chatbot role="admin" />
         </div>
-      );
-    }
-
-    return (
-      <div className="min-h-screen overflow-x-hidden bg-slate-50">
-        <Navbar />
-        
-        {/* Prominent Role Switcher for Demo */}
-        <div className="fixed top-24 right-0 z-[60] flex flex-col items-end pointer-events-none">
-          <motion.div 
-            initial={{ x: 100 }}
-            animate={{ x: 0 }}
-            className="bg-navy/90 backdrop-blur-md border border-gold/30 rounded-l-xl p-3 shadow-2xl pointer-events-auto flex items-center gap-3 group hover:pr-6 transition-all"
-          >
-            <div className="flex flex-col items-end">
-              <p className="text-[10px] text-gold uppercase tracking-widest font-bold">Modo de Vista</p>
-              <p className="text-xs text-white font-bold">Admin / Público</p>
-            </div>
-            <button 
-              onClick={() => setRole(role === 'client' ? 'admin' : 'client')}
-              className="px-3 h-10 gold-gradient rounded-lg flex items-center justify-center text-navy shadow-lg hover:scale-110 active:scale-95 transition-all gap-2"
-              title={role === 'client' ? 'Cambiar a Vista Admin' : 'Cambiar a Vista Cliente'}
-            >
-              <span className="text-[10px] font-black uppercase">Switch</span>
-              {role === 'client' ? <Settings className="w-4 h-4" /> : <Users className="w-4 h-4" />}
-            </button>
-          </motion.div>
+      ) : (
+        <div className="min-h-screen overflow-x-hidden bg-slate-50">
+          <Navbar />
           
-          {role === 'client' && (
+          {/* Prominent Role Switcher for Demo */}
+          <div className="fixed top-24 right-0 z-[60] flex flex-col items-end pointer-events-none">
             <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-2 mr-4 bg-amber-500 text-white text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter shadow-lg"
+              initial={{ x: 100 }}
+              animate={{ x: 0 }}
+              className="bg-navy/90 backdrop-blur-md border border-gold/30 rounded-l-xl p-3 shadow-2xl pointer-events-auto flex items-center gap-3 group hover:pr-6 transition-all"
             >
-              Demo: Haz clic para ver el Panel Admin
+              <div className="flex flex-col items-end">
+                <p className="text-[10px] text-gold uppercase tracking-widest font-bold">Modo de Vista</p>
+                <p className="text-xs text-white font-bold">Admin / Público</p>
+              </div>
+              <button 
+                onClick={() => setRole(role === 'client' ? 'admin' : 'client')}
+                className="px-3 h-10 gold-gradient rounded-lg flex items-center justify-center text-navy shadow-lg hover:scale-110 active:scale-95 transition-all gap-2"
+                title={role === 'client' ? 'Cambiar a Vista Admin' : 'Cambiar a Vista Cliente'}
+              >
+                <span className="text-[10px] font-black uppercase">Switch</span>
+                {role === 'client' ? <Settings className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+              </button>
             </motion.div>
-          )}
-        </div>
+            
+            {role === 'client' && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-2 mr-4 bg-amber-500 text-white text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter shadow-lg"
+              >
+                Demo: Haz clic para ver el Panel Admin
+              </motion.div>
+            )}
+          </div>
 
-        <Hero />
-        <About />
-        <Services />
-        <BookingSystem />
-        <Testimonials />
-        <AIScanner />
-        <Contact />
-        <Footer />
-        <Chatbot role="client" />
-        <PWAInstallPrompt />
-      </div>
-    );
-  } catch (error) {
-    console.error("Critical error in App:", error);
-    return (
-      <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-6 text-center">
-        <AlertTriangle className="text-gold w-16 h-16 mb-4" />
-        <h1 className="text-2xl font-serif text-white mb-2">Error de Carga</h1>
-        <p className="text-white/60 max-w-md">La aplicación encontró un problema inesperado. Por favor, intenta recargar la página.</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="mt-8 gold-gradient text-navy px-8 py-3 rounded-xl font-bold uppercase tracking-widest hover:scale-105 transition-all"
-        >
-          Recargar Aplicación
-        </button>
-      </div>
-    );
-  }
+          <Hero />
+          <About />
+          <Services />
+          <BookingSystem />
+          <Testimonials />
+          <AIScanner />
+          <Contact />
+          <Footer />
+          <Chatbot role="client" />
+          <PWAInstallPrompt />
+        </div>
+      )}
+    </div>
+  );
 }
